@@ -1,0 +1,70 @@
+
+# ===================================
+# PYTHON
+# ===================================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# ===================================
+# VIRTUAL ENVIRONMENT
+# ===================================
+venv/
+.venv/
+env/
+ENV/
+
+# ===================================
+# DJANGO
+# ===================================
+db.sqlite3
+db.sqlite3-journal
+*.log
+local_settings.py
+staticfiles/
+media/
+
+# ===================================
+# ENVIRONMENT VARIABLES / SECRETS
+# ===================================
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ===================================
+# IDE / EDITOR
+# ===================================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ===================================
+# OPERATING SYSTEM
+# ===================================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===================================
+# TESTING / CACHE
+# ===================================
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+
+# ===================================
+# JUPYTER
+# ===================================
+.ipynb_checkpoints/
