@@ -2,17 +2,44 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
+import DashboardLayout from './layouts/DashboardLayout'
+import DashboardHome from './pages/dashboard/DashboardHome'
+import ModulePage from './pages/dashboard/ModulePage'
+import RequireRole from './components/dashboard/RequireRole'
+import CurrentUserProvider from './context/CurrentUserProvider'
+import { navItems } from './config/navigation'
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+    <CurrentUserProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+
+          <Route path="/dashboard" element={<DashboardLayout />}>
+            <Route index element={<DashboardHome />} />
+            {navItems
+              .filter((item) => item.path !== '')
+              .map((item) => (
+                <Route
+                  key={item.path}
+                  path={item.path}
+                  element={
+                    <RequireRole roles={item.roles}>
+                      <ModulePage item={item} />
+                    </RequireRole>
+                  }
+                />
+              ))}
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Route>
+
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </CurrentUserProvider>
   )
 }
 
