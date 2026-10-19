@@ -1,4 +1,5 @@
 import { Landmark } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 const links = [
   { label: 'Home', href: '#home' },
@@ -34,12 +35,12 @@ export default function Navbar() {
               </li>
             ))}
           </ul>
-          <a
-            href="/login"
+          <Link
+            to="/login"
             className="rounded bg-navy px-6 py-2 text-sm font-semibold text-white transition hover:bg-navy-dark sm:px-8"
           >
             Login
-          </a>
+          </Link>
         </div>
       </nav>
     </header>

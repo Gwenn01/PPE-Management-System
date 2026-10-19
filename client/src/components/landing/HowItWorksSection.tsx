@@ -44,7 +44,7 @@ export default function HowItWorksSection() {
   return (
     <section
       id="how-it-works"
-      className="w-full bg-white"
+      className="w-full border-t border-line bg-white"
     >
       <div className="mx-auto max-w-[1440px] px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
         <Reveal className="mx-auto max-w-2xl text-center">

@@ -95,7 +95,7 @@ export default function FeaturesSection() {
   const rest = features.slice(3)
 
   return (
-    <section id="features" className="w-full bg-white">
+    <section id="features" className="w-full border-t border-line bg-white">
       <div className="mx-auto max-w-[1440px] px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
         <Reveal className="max-w-2xl">
           <p className="text-sm font-semibold text-gray">System Features</p>

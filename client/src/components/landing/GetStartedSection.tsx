@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+
 export default function GetStartedSection() {
   return (
     <section
@@ -11,12 +13,12 @@ export default function GetStartedSection() {
         <p className="mt-3 text-sm text-ink sm:text-base">
           Sign in to access the modules assigned to your role.
         </p>
-        <a
-          href="/login"
+        <Link
+          to="/login"
           className="mt-6 inline-block w-fit rounded bg-navy px-12 py-3 text-sm font-semibold text-white transition hover:bg-navy-dark"
         >
           Login
-        </a>
+        </Link>
         <p className="mt-8 max-w-sm text-xs leading-5 text-ink/80 sm:text-sm">
           This system is for authorized municipal personnel in Zambales. Access
           to records depends on your assigned role and municipality.

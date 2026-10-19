@@ -1,4 +1,5 @@
 import { Landmark } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 const links = [
   { label: 'Home', href: '#home' },
@@ -21,9 +22,15 @@ export default function Footer() {
         <ul className="flex flex-wrap gap-6 text-xs text-ink sm:text-sm">
           {links.map((link) => (
             <li key={link.label}>
-              <a href={link.href} className="transition hover:text-navy">
-                {link.label}
-              </a>
+              {link.href.startsWith('/') ? (
+                <Link to={link.href} className="transition hover:text-navy">
+                  {link.label}
+                </Link>
+              ) : (
+                <a href={link.href} className="transition hover:text-navy">
+                  {link.label}
+                </a>
+              )}
             </li>
           ))}
         </ul>
