@@ -63,6 +63,14 @@ export const navItems: NavItem[] = [
     permission: { resource: 'users', action: 'read' },
   },
   {
+    path: 'account-requests',
+    label: 'Account Requests',
+    description: 'Approve and reject pending municipal registration requests.',
+    icon: CheckCircle2,
+    group: 'Administration',
+    permission: { resource: 'users', action: 'read' },
+  },
+  {
     path: 'departments',
     label: 'Departments',
     description: 'Manage departments and offices.',
@@ -298,3 +306,4 @@ export function getNavGroups(user: AccessIdentity, context: AccessContext = user
 export function hrefFor(item: NavItem) {
   return item.path ? `/dashboard/${item.path}` : '/dashboard'
 }
+

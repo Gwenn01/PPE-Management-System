@@ -2,11 +2,15 @@ import { Construction } from 'lucide-react'
 import type { NavItem } from '../../config/navigation'
 import { lazy, Suspense } from 'react'
 
-const DemoDataTools = lazy(() => import('../../features/data/DemoDataTools'))
-const AccountRequests = lazy(() => import('../../features/auth/AccountRequests'))
+const AdministratorModule = lazy(() => import('../../features/administration/AdministratorModule'))
 
-/** Existing module shell; System Settings currently exposes Phase 02 demo data tools. */
+/** Admin destinations are complete; unfinished business modules keep their clear placeholder. */
 export default function ModulePage({ item }: { item: NavItem }) {
+  if ((['users','account-requests','departments','permissions','settings','audit-trail'] as const).some((path) => path === item.path)) return (
+    <Suspense fallback={<p className="text-sm text-gray" role="status">Loading administration…</p>}>
+      <AdministratorModule module={item.path as 'users' | 'account-requests' | 'departments' | 'permissions' | 'settings' | 'audit-trail'} />
+    </Suspense>
+  )
   return (
     <div className="mx-auto max-w-6xl">
       <div className="rounded-2xl border border-line bg-white p-6 sm:p-8">
@@ -27,13 +31,7 @@ export default function ModulePage({ item }: { item: NavItem }) {
           {item.description}
         </p>
 
-        {item.path === 'users' ? (
-          <Suspense fallback={<p className="mt-8 text-sm text-gray" role="status">Loading account requests…</p>}><AccountRequests /></Suspense>
-        ) : item.path === 'settings' ? (
-          <Suspense fallback={<p className="mt-8 text-sm text-gray" role="status">Loading demo data tools…</p>}>
-            <DemoDataTools />
-          </Suspense>
-        ) : <div className="mt-8 flex flex-col items-center rounded-xl border border-dashed border-line bg-mist px-6 py-14 text-center">
+        <div className="mt-8 flex flex-col items-center rounded-xl border border-dashed border-line bg-mist px-6 py-14 text-center">
           <Construction className="h-8 w-8 text-gray" strokeWidth={1.6} />
           <p className="mt-3 text-sm font-semibold text-navy">
             This module is not built yet.
@@ -41,8 +39,9 @@ export default function ModulePage({ item }: { item: NavItem }) {
           <p className="mt-1 max-w-sm text-xs text-charcoal/80">
             The page is routed and role-protected. The real screen will go here.
           </p>
-        </div>}
+        </div>
       </div>
     </div>
   )
 }
+

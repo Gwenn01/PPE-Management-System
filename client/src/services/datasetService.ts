@@ -25,6 +25,7 @@ async function replaceScope(database: MockDatabase, actor: User, replacement: Da
   const at = new Date().toISOString()
   // Audit history survives replacements. An import cannot rewrite an existing audit event.
   const incomingLogs = new Map(replacement.auditLogs.map((row) => [row.id, row]))
+  if (operation === 'import' && replacement.auditLogs.some((row) => !before.auditLogs.some((old) => old.id === row.id))) throw new DataError('validation', 'Imported data cannot fabricate new historical audit events.')
   for (const old of before.auditLogs) {
     const imported = incomingLogs.get(old.id)
     if (imported && JSON.stringify(parseEntity('auditLogs', imported)) !== JSON.stringify(parseEntity('auditLogs', old))) throw new DataError('conflict', 'An existing audit event cannot be rewritten by import.')
@@ -134,3 +135,4 @@ export function createDatasetService(database: MockDatabase): DatasetTools {
     }),
   }
 }
+

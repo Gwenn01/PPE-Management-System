@@ -1,3 +1,4 @@
+import { createAdministratorService } from './administratorService.js'
 import { database, DATABASE_VERSION } from '../mock/database.js'
 import type { MockDatabase } from '../mock/database.js'
 import { createDatasetService } from './datasetService.js'
@@ -15,6 +16,7 @@ export function createMockDataServices(storage: MockDatabase = database) {
       return { schemaVersion: storage.verno }
     }),
     entities: createEntityServices(storage),
+    administration: createAdministratorService(storage),
     approvals: createApprovalService(storage),
     documents: createDocumentService(storage),
     users: { changeStatus: createIdentityStatusService(storage) },
@@ -26,3 +28,4 @@ export function createMockDataServices(storage: MockDatabase = database) {
 
 export type MockDataServices = ReturnType<typeof createMockDataServices>
 export const mockDataServices = createMockDataServices()
+

@@ -84,3 +84,13 @@ export function canAccess(
     (user.municipalityId === 'botolan' || user.municipalityId === 'san_antonio') &&
     user.municipalityId === context.municipalityId && hasRolePermission(user.role, requirement)
 }
+
+
+/** Phase 05 permission editing can only reduce/reinstate centrally approved grants.
+ * Bootstrap access, identity lookups and municipal scoping are immutable.
+ */
+export function isLockedGrant(rule: PermissionRequirement & { role: Role }): boolean {
+  return (rule.resource === 'dashboard' && rule.action === 'read') ||
+    (rule.resource === 'reference_data' && rule.action === 'read') ||
+    (rule.role === 'administrator' && (['users', 'departments', 'permissions', 'settings', 'audit_logs', 'demo_data'].includes(rule.resource) || (rule.resource === 'asset_categories' && rule.action === 'read')))
+}

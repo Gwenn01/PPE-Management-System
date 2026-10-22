@@ -1,6 +1,6 @@
 import type { Dataset, EntityMap, EntityName } from '../../domain/data.js'
 import type { MunicipalityId } from '../../domain/models.js'
-import { permissionRules } from '../../domain/permissions.js'
+import { permissionRules, isLockedGrant } from '../../domain/permissions.js'
 import { validApprovalEvent } from '../../domain/workflow.js'
 import type { WorkflowStatus } from '../../domain/models.js'
 import { DataError } from '../../services/errors.js'
@@ -163,9 +163,14 @@ export function validateDataset(input: unknown): Dataset {
   for (const municipality of data.municipalities) {
     if (municipality.name !== (municipality.id === 'botolan' ? 'Botolan' : 'San Antonio')) throw new DataError('validation', 'Municipality name/ID mismatch.')
     if (!data.users.some((user) => user.municipalityId === municipality.id && user.role === 'administrator' && user.status === 'active')) throw new DataError('validation', 'Keep an active demo Administrator in each municipality.')
-    const actual = data.permissions.filter((rule) => rule.municipalityId === municipality.id).map((rule) => `${rule.role}:${rule.resource}:${rule.action}`).sort()
-    const expected = permissionRules.map((rule) => `${rule.role}:${rule.resource}:${rule.action}`).sort()
-    if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new DataError('validation', 'Permission snapshots must match the centrally defined demo policy.')
+    const local = data.permissions.filter((rule) => rule.municipalityId === municipality.id)
+    const actual = local.map((rule) => `${rule.role}:${rule.resource}:${rule.action}`)
+    const allowed = new Set(permissionRules.map((rule) => `${rule.role}:${rule.resource}:${rule.action}`))
+    if (new Set(actual).size !== actual.length || actual.some((entry) => !allowed.has(entry))) throw new DataError('validation', 'Unknown or duplicate municipal permission grant.')
+    for (const locked of permissionRules.filter(isLockedGrant)) {
+      if (!actual.includes(`${locked.role}:${locked.resource}:${locked.action}`)) throw new DataError('validation', 'Immutable municipal bootstrap grants must be preserved.')
+    }
   }
   return data
 }
+

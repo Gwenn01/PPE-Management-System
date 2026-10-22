@@ -77,34 +77,14 @@ export default defineConfig([
   },
 ])
 
-```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+## Phase 04 — Role dashboards and shared UI
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Dashboard home now requests one municipality-scoped, session-authorized projection from `src/services/dashboardService.ts`. The eight roles have distinct live-from-IndexedDB stats and searchable/filterable/sortable read-only activity tables. The `src/components/ui/` primitives are available for later module screens. See `DEVELOPMENT_PROGRESS.md` for exact metric definitions, security constraints and verification status.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Only finished module actions are linked as functioning quick actions (Administrator Users account review and Settings demo-data tools). Other business modules remain visibly unimplemented; there are no simulated approval, voucher or posting actions. Source exports of this phase omit the original image binaries: apply the changed-files patch to the existing local project to preserve the landing/auth imagery. Run `npm ci && npm run build && npm run lint && npm test` in the original project with registry access.
 
-```
+
+### Phase 05 Administrator modules (source implementation)
+
+The six Administrator destinations now include local-user administration, separate account requests, departments, stored role-permission matrix, demo settings/categories/accounting policies, and an append-only audit history view. The account review service from Phase 03 remains authoritative. Only current-municipality users, settings, assets and audit entries are accessible. User moves between municipalities and permission escalation beyond the centrally approved allowlist are intentionally disabled. Core permissions cannot be revoked. Confirm significant changes; all writes are version checked, auditable IndexedDB transactions. Check `DEVELOPMENT_PROGRESS.md` for verification limitations and remaining dependencies.

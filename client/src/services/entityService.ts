@@ -66,6 +66,27 @@ export async function applyUpdate<K extends WritableEntity>(database: MockDataba
   checkVersion(old, version)
   editableWorkflow(old, actor, name)
   const record = parseEntity(name, { ...old, ...inputFields(changes), version: old.version + 1, updatedAt: new Date().toISOString() })
+  if (name === 'users') {
+    const candidate = record as EntityMap['users']
+    const previous = old as EntityMap['users']
+    if (candidate.role !== previous.role && previous.role === 'administrator' && previous.status === 'active') {
+      const other = await database.entity('users').where('municipalityId').equals(previous.municipalityId).filter((user) => user.id !== previous.id && user.role === 'administrator' && user.status === 'active').count()
+      if (!other) throw new DataError('validation', 'Keep at least one active local Administrator.')
+    }
+    if (candidate.departmentId) {
+      const dep = await database.entity('departments').get(candidate.departmentId)
+      if (!dep?.active || dep.municipalityId !== candidate.municipalityId) throw new DataError('validation', 'Choose an active department in the same municipality.')
+    }
+  }
+  if (name === 'departments' && (old as EntityMap['departments']).active && !(record as EntityMap['departments']).active) {
+    const dependents = await database.entity('users').where('municipalityId').equals(context.municipalityId).filter((user) => user.departmentId === id && user.status !== 'disabled').count()
+    const assets = await database.entity('assets').where('municipalityId').equals(context.municipalityId).filter((asset) => asset.departmentId === id).count()
+    const registrations = await database.entity('registrations').where('municipalityId').equals(context.municipalityId).filter((record) => record.departmentId === id && !['cancelled', 'rejected'].includes(record.workflowStatus)).count()
+    const projects = await database.entity('projects').where('municipalityId').equals(context.municipalityId).filter((record) => record.departmentId === id && !['cancelled', 'capitalized'].includes(record.projectStatus)).count()
+    const sessions = await database.entity('inventorySessions').where('municipalityId').equals(context.municipalityId).filter((record) => record.departmentId === id && !['completed', 'cancelled'].includes(record.sessionStatus)).count()
+    const transfers = await database.entity('transfers').where('municipalityId').equals(context.municipalityId).filter((record) => (record.fromDepartmentId === id || record.toDepartmentId === id) && !['approved', 'rejected', 'cancelled'].includes(record.workflowStatus)).count()
+    if (dependents || assets || registrations || projects || sessions || transfers) throw new DataError('validation', 'Department still has dependent users, assets or unfinished business records.')
+  }
   await entityRepository(database, name).update(record)
   if (name === 'users' && 'role' in old && 'role' in record && old.role !== record.role) await database.sessions.where('userId').equals(record.id).delete()
   await writeAudit(database, actor, transactionId, name, old, record, 'update')
@@ -207,6 +228,12 @@ export function createIdentityStatusService(database: MockDatabase) {
       const department = old.departmentId ? await database.entity('departments').get(old.departmentId) : undefined
       if (!department?.active || department.municipalityId !== old.municipalityId) throw new DataError('validation', 'Activate the requested department before approving this account.')
     }
+    if (old.status === 'pending' && status === 'active') throw new DataError('invalid_transition', 'Pending registrations must be approved through the account review service.')
+    if (status === 'pending') throw new DataError('invalid_transition', 'Managed accounts cannot be returned to Pending.')
+    if (old.status === 'disabled' && status === 'active') {
+      const rejected = await database.entity('auditLogs').where('municipalityId').equals(context.municipalityId).filter((event) => event.entityId === old.id && event.action === 'reject_account').count()
+      if (rejected) throw new DataError('invalid_transition', 'Rejected registrations cannot be reactivated without a new registration.')
+    }
     const row = parseEntity('users', { ...old, status: z.enum(['pending', 'active', 'disabled']).parse(status), version: old.version + 1, updatedAt: new Date().toISOString() })
     await database.entity('users').put(row)
     await database.sessions.where('userId').equals(row.id).delete()
@@ -227,3 +254,4 @@ export function createNotificationService(database: MockDatabase) {
     return row
   }))
 }
+

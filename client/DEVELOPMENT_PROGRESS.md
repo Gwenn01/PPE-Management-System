@@ -328,3 +328,98 @@ Test total: 17 retained role/route tests + 30 retained data/migration tests + 29
 - The minimal account-review panel is a Phase 03 dependency, not a full Users module. User editing, policy administration and all asset/construction/inventory/lifecycle/accounting/report screens remain for later explicit scopes.
 - The five detailed flowcharts remain unavailable. No future business workflow or legally verified accounting policy was introduced. Browser visual/interaction verification remains outstanding because no browser connection was available.
 - Next required task: follow the user's next phase instructions, reuse authenticated requestContext and typed services, and preserve municipality isolation and the current design.
+
+
+## Phase 04 — Shared UI and role dashboards
+
+Status: **implemented in reconstructed source snapshot on 2026-10-22; full dependency-backed verification pending.** The code was reconstructed from the user's text export of Phase 03, not modified in their local VS Code repository. The export omits five original landing/auth JPG images and one source PNG; the matching original asset paths were preserved but **the missing binary artwork is not included in this reconstructed package**. For a complete site, overlay the Phase 04 changed-file bundle onto the original `client/` directory instead of replacing the entire folder.
+
+### Shared UI delivered
+
+- `src/components/ui/`: PageHeader, StatCard, DataTable, SearchInput, FilterBar, Pagination, StatusBadge, Modal, ConfirmDialog, FormField, FileUpload, DocumentPreview, ActivityTimeline, LoadingSkeleton, ErrorState, EmptyState and ToastProvider/useToast. Central exports in `index.ts`.
+- Reusable DataTable supports case-insensitive searching, stable sort controls (ascending/descending), status filtering, accessible table headings, mobile horizontal overflow and clamped client-side pagination. Pure `prepareTable` utility makes transformations independently testable.
+- Shared accessible modal adds focus entry and restoration, Escape/backdrop close and Tab/Shift+Tab containment; confirmation uses the same dialog primitive. Validation fields associate labels, error messages and hints. Upload includes a size guard **in addition to**, not instead of, the pre-existing service-side byte/MIME/scope checks.
+- Read-only record summaries open in the dashboard detail modal. Notifications use a polite status or assertive error announcement and can be dismissed. Loading, filtered empty, storage error/retry states are present.
+- Original theme tokens (`navy`, `gray`, `charcoal`, `white`, `mist`), DashboardLayout, landing and authentication components/styles remain unchanged except mounting the shared ToastProvider at the application root. Sidebar/Topbar/DashboardLayout receive keyboard/focus improvements without layout redesign: mobile navigation now traps Tab, closes on Escape, returns focus and is hidden from keyboard navigation while off-canvas. No additional packages are required by the source changes.
+
+### Municipality-scoped, session-checked dashboard service
+
+- Added `src/services/dashboardService.ts` with `createDashboardService(storage)` for injectable Dexie testing. Every snapshot runs inside a read-only DB transaction, calls the Phase 03 persisted-session `authorize(..., 'dashboard', 'read')` check and restricts all queried entities to the validated actor's municipality.
+- Returns **role-specific projections only** (metrics and limited read-only record summaries); no generic data-table read or write elevation is granted. Other municipalities, inactive identities, fake/expired sessions and missing dashboard grants fail closed. Admin has no asset override; Auditor has no write/approval action.
+- Financial numbers are integer centavos converted only for presentation. CIP comes from posted CIP debit-credit movements; posted depreciation is not a depreciation forecast. The role dashboards do not synthesize missing actual accounts or vouchers.
+
+| Role | Dynamically calculated metrics | Activity panel |
+| --- | --- | --- |
+| Administrator | All stored municipal users, pending account applicants, active departments, audit-event count | Recent audit and pending accounts; links to functional Users review and Settings demo-data tools |
+| Property Officer | Assets, submitted/review registration and lifecycle requests, in-progress projects, unresolved discrepancy records | Registration, transfer, maintenance, discrepancy and disposal requests |
+| Accounting Officer | Approved unrecognized registrations, posted CIP net balance, posted depreciation net credit, open reconciliations | Reconciliation records, CIP costs, accounting transactions |
+| Inventory Personnel | Active assigned sessions, uniquely verified assets, observed mismatches against asset records, assigned session count | Sessions assigned to the signed-in inventory worker only |
+| Approving Officer | Submitted/review, approved, returned, rejected approval requests for assigned approving role | Approval queue and decisions, without unsupported approve actions |
+| Auditor | Asset count, net posted debit/credit balance, accounting record count, audit-event count | Accounting history and audit-event timeline, read-only |
+| Engineering Office | Projects referenced by its routed documents, documents pending engineering review, in-progress assigned projects | Engineering-visible document routes |
+| Budget Office | Projects explicitly marked received in routing, submitted/review budget-bound routes, routing record count | Assigned Budget Office routes; explicitly states no voucher ledger exists |
+
+All metrics are calculated from the current IndexedDB state, not hardcoded numbers. Refresh button re-queries data after other modules mutate it. Dashboards are intentionally distinct in titles, metrics and record data; low-activity or empty municipality data displays zero/empty views without fabricated activity.
+
+### Scope constraints
+
+- Functional quick actions link only to existing Administrator **Users** account review, **System Settings** demo-data tools and the current dashboard's read-only record section; the other seven roles cannot falsely launch unimplemented workflow screens as if functional. Their module routes and permission guards remain available as explicit future-work placeholders. No acquisition, construction, engineering, budget, physical-inventory, approval, depreciation or reconciliation business commands were created in Phase 04.
+- The current mock schema has **no voucher table** and no posted depreciation seed entries. Budget explicitly reports routing rather than invented voucher totals; Accounting shows posted depreciation of zero when none exists.
+- The dashboard is a point-in-time async view; it refreshes through the button or when the authenticated user/session changes. Cross-tab live change feeds are future work.
+- Accessibility primitives have keyboard and semantic behavior authored; actual keyboard/screen-reader/browser testing is pending a running app with dependencies and a browser.
+
+### Verification on the reconstruction environment
+
+| Check | Result |
+| --- | --- |
+| Source reconstruction | PASS: 110 text-representable Phase 03 files reconstructed; binary omissions documented. |
+| TypeScript syntax/JSX transpilation | PASS: globally installed TypeScript parsed/transpiled 91 TS/TSX files with zero syntax diagnostics. This is **not** full typechecking. |
+| Pure UI table behavior check | PASS: independently executed Node 22 assertions for searching, natural sorting, status filtering and safe pagination. |
+| `npm ci --offline` | BLOCKED: registry tarball `zod-validation-error@4.0.2` not in local npm cache. |
+| `npm ci --prefer-offline` | BLOCKED: registry DNS unavailable; canceled after timeout. |
+| `npm run build` | BLOCKED: dependencies not installed, `vite/client` and `@types/node` missing. No build pass claimed. |
+| `npm run lint` | BLOCKED: ESLint executable unavailable. No lint pass claimed. |
+| `npm test` | BLOCKED: dependencies/type declarations unavailable, so Node-based full suite and Phase 04 tests could not execute. |
+| Browser/UI interaction tests | NOT RUN: no usable runtime/browser integration in this environment. |
+
+Added `tests/dashboard.test.ts` containing eight tests (role distinctions, real seed counts, database edits, municipal/session denials, observer ownership, approval scope, voucher/depreciation honesty, table search/filter/sort/empty/pagination) and updated the npm test script to include it. The original 76 Phase 03 tests remain in place.
+
+### How to verify in the real project
+
+1. Copy the Phase 04 patch onto the existing `client/` repo; keep existing JPG/PNG and the `public/iamges` spelling unchanged.
+2. Run `npm ci` **with npm registry access**, then `npm run typecheck`, `npm run build`, `npm run lint`, and `npm test` from `client/`.
+3. Run `npm run dev`, use the existing public demo login, and switch between eight role accounts/municipalities in development. Check mobile/tablet/desktop layouts, keyboard modal/Tab/Escape behavior, filters/pages, empty states, denied direct URLs, the Administrator functional links and changed data after refresh.
+4. Do not report acceptance completed until the checks and browser interactions above pass in the real local project.
+
+## Phase 05 — Administrator module
+
+Status: **source implementation prepared (2026-10-22); dependency-backed verification remains blocked in this reconstruction.** This phase is based on the Phase 04 reconstructed source. Binary image assets from the original computer were not supplied. The files should be applied to the user's existing project through the Phase 05 overlay, not by replacing the original asset directories.
+
+### Administrator functionality
+
+- `src/features/administration/AdministratorModule.tsx`: working six-section Administrator suite. The existing `/dashboard/users`, `/dashboard/departments`, `/dashboard/permissions`, `/dashboard/settings`, and `/dashboard/audit-trail` destinations now render management screens. Added `/dashboard/account-requests` to the authorized Administrator navigation, while preserving the original registration review service and controls. The Administrator dashboard offers links to all six completed sections.
+- **User management:** municipality-scoped user directory with search, sort, filter, pagination, view details, dedicated mock-account provisioning, edit name/username/email/role/department, status confirmation, active-session revocation and account lifecycle audit. New accounts are explicitly provisioned within the signed-in Administrator's municipality and use the existing public demo password. Existing users **cannot be reassigned to a different municipality** by a local Administrator: doing so would silently expand access across tenants. Role and department assignment remain editable locally. Only active local departments are assignable; duplicates are rejected.
+- **Account requests:** shows pending local self-registrations and explicit approve/reject decisions with mandatory rejection reason. The Phase 03 `auth.reviewAccount` operation already records actor, action, date, reason and affected account in IndexedDB audit history and activates only after approval. Approved accounts can sign in using the public demo credential; rejected requests cannot sign in or be reactivated by the new Administrator status command. Unreviewed Pending accounts cannot be activated via the older generic status API.
+- **Departments:** create/edit and browse assigned users and assets; confirm activate/deactivate. Dependency validation runs in a single commit transaction and blocks deactivation with active/Pending users, assets, unclosed asset registrations, projects, inventory sessions, or outstanding transfers. Deletion is intentionally unsupported because historical records must retain valid references.
+- **Role/permission matrix:** all eight roles and centrally approved actions/resources, with individually persisted municipal grant toggles. Toggling only removes or restores existing centrally approved grants; no unsupported authority can be added. Immutable dashboard, reference lookup, Administrator management/administrative audit and demo dataset grants are protected. Services check stored grants on every read/write and do not trust UI toggles. After a change, sessions for users with the affected role are revoked, forcing fresh permission hydration on next login.
+- **Settings:** view/update the existing municipality-specific demo fiscal year and demo notice; create/edit demo asset categories; edit existing versioned demo straight-line accounting reference policies. Important changes require review and a confirmation dialog. Each mutation persists to IndexedDB with optimistic version checks, validation and audit records. Posted accounting entries are not recomputed retroactively. The Phase 02 municipality-only import/export/seed-reset tools remain available with their existing confirmations; prior audit history is retained.
+- **Administrative history:** searchable/sortable/paginated timeline/table with timestamps, actor, action, affected entity and change details. The app exposes no audit-event delete/update service. Dataset imports now reject fabricated additional historical audit entries and still retain prior audit history. Dataset reset continues to append rather than delete historical audit events.
+- Reused Phase 04 DataTable, shared accessible Modal and ConfirmDialog, buttons, input states, loading/error handling and the existing navy/charcoal/gray/white/mist palette. Non-Administrator pages and unfinished business modules remain untouched.
+
+### Security/architecture notes
+
+- New `src/services/administratorService.ts` is the dedicated service boundary, using persisted `authorize` checks and a single `commitMutation` transaction for changes, audits, scope and dependency validation. Every operation is scoped to the authenticated actor's municipality; no administrator global tenant override exists.
+- `src/mock/validation/dataset.ts` now accepts a **subset** of the static permission allowlist, requires immutable core grants, and rejects duplicate or unknown grants. This replaces Phase 02's exact-snapshot assumption. Source seeds are unchanged. Configurable grants remain constrained by static `canAccess` and stored permissions together, preventing privilege escalation, municipality bypass or changes to historical approval authority.
+- Enhanced generic `entityService` to prevent direct Pending-account activation, protect against orphaning the final municipal Administrator on role changes, and validate active department assignment and certain department deactivations. Note: general-purpose lower-level entity paths remain service-authorized; expanded business workflows will still need their own business-level commands.
+- **Deliberate limitations:** there is no cross-municipality user reassignment, no true password or production identity management, no department hard delete, no permission escalation beyond the predefined matrix, no retroactive accounting recalculation, and no real accounting compliance verification. The original flowcharts are still not available.
+
+### Verification
+
+- **PASS:** TypeScript/TSX syntax parse of project and tests using installed global TypeScript compiler (no parse errors).
+- **PASS:** basic source-level guardrail checks for permitted routes, required files and callback wiring.
+- **NOT VERIFIED:** `npm run typecheck`, `npm run build`, `npm run lint`, `npm test` and rendered browser interaction. Dependencies are absent from the reconstructed source environment; `npm ci --offline` failed with ENOTCACHED, and online `npm ci` did not finish before the execution timeout. `tsc` reports missing `vite/client` types. These commands must be run against the existing fully installed local project before claiming Phase 05 complete.
+- **New behavior tests written:** `tests/administrator.test.ts` tests mock account provisioning and duplicate rejection, Pending account approval and login, reasoned rejection, account deactivation and session revocation, last active Administrator guard, department deactivation dependencies, persisted municipal permission revocation/restoration and service enforcement, protected core grants, settings/categories/policies and append-only audit behavior. Added this suite to `npm test`, and adjusted prior tests for the additional Administrator route, permission subset policy and removal of direct Pending activation.
+
+### Next action
+
+Apply the overlay to the original `client/` directory; retain original binary art/assets. Run `npm ci`, `npm run typecheck`, `npm run build`, `npm run lint`, and `npm test`. Then manually test mobile/tablet/desktop dialog focus, account review and permission-revocation/login in a real browser. Any compiler/test issues in that local environment should be addressed before using the suite as a verified deliverable.
