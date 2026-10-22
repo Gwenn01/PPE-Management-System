@@ -40,7 +40,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
           type="button"
           onClick={onMenuClick}
           aria-label="Open menu"
-          className="rounded p-2 text-charcoal hover:bg-mist lg:hidden"
+          className="rounded p-2 text-charcoal hover:bg-mist focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy lg:hidden"
         >
           <Menu className="h-5 w-5" />
         </button>
@@ -71,7 +71,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
           onClick={() => { void handleLogout() }}
           aria-label="Log out"
           title="Log out"
-          className="rounded p-2 text-gray transition-colors hover:bg-mist hover:text-navy"
+          className="rounded p-2 text-gray transition-colors hover:bg-mist hover:text-navy focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy"
         >
           <LogOut className="h-5 w-5" />
         </button>
@@ -79,3 +79,4 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
     </header>
   )
 }
+

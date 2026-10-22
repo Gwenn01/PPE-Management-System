@@ -12,10 +12,11 @@ import { dashboardRoute, navItems } from './config/navigation'
 import MockDataBoundary from './features/data/MockDataBoundary'
 import RequireSession from './features/auth/RequireSession'
 import GuestOnly from './features/auth/GuestOnly'
+import ToastProvider from './components/ui/Toast'
 
 function App() {
   return (
-    <CurrentUserProvider>
+    <ToastProvider><CurrentUserProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<LandingPage />} />
@@ -48,8 +49,9 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
-    </CurrentUserProvider>
+    </CurrentUserProvider></ToastProvider>
   )
 }
 
 export default App
+

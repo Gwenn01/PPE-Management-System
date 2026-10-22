@@ -1,0 +1,3 @@
+export default function LoadingSkeleton({ count = 4, label = 'Loading dashboard data…' }: { count?: number; label?: string }) {
+  return <div role="status" aria-live="polite" aria-label={label} className="space-y-5"><span className="sr-only">{label}</span><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{Array.from({ length: count }, (_, index) => <div key={index} aria-hidden className="h-36 animate-pulse rounded-2xl border border-line bg-white p-5"><div className="h-3 w-2/3 rounded bg-mist" /><div className="mt-6 h-9 w-1/3 rounded bg-mist" /><div className="mt-4 h-3 w-3/4 rounded bg-mist" /></div>)}</div></div>
+}
