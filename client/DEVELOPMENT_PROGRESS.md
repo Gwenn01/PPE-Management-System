@@ -1,6 +1,6 @@
 # PPE Management System — Development Progress
 
-Current status: Phase 00 and the user's Phase 01 (frontend architecture and role access) are complete. Phase 00 findings below are historical; the Phase 01 section records the current implementation. The actual Phase 01 scope supersedes the broader provisional Phase 01 proposal in the audit: persistence and authentication integration remain future work.
+Current status: Phases 00, 01 and 02 are complete. Earlier sections below are historical; Phase 02 records the current persistent data layer. The user's actual phase scopes supersede the provisional sequence in the original audit. Mock authentication/session integration and full business modules remain future work.
 
 ## Phase 00 — Project audit and preparation
 
@@ -215,3 +215,58 @@ Tests exercise all eight role registries, sixteen distinct municipality/role ide
 Follow the user's next phase instructions. Before functional modules, the remaining integration foundation will need versioned JSON seed initialization into IndexedDB, scoped repositories, transaction consistency and runtime input/reference validation, mock account/session handling, and audit/approval persistence. Replace preview identity selection with explicitly simulated sessions when that phase is authorized.
 
 Do not add these operations until requested. Full module pages, actual asset data, metrics, accounting calculations, uploads, reports/exports and cross-role workflows remain unimplemented. The five detailed flowcharts are still needed to settle document responsibilities and transition ordering. Browser accessibility findings from Phase 00 beyond the new access controls remain outstanding.
+
+## Phase 02 — JSON data, IndexedDB and mock services
+
+Status: complete (2026-10-22). Added browser-only persistence and service operations, preserving the existing React pages and design. No backend, external database, real API requests or credential authentication was added.
+
+### Implemented features and architectural decisions
+
+- Added 24 separate seed JSON files under `src/mock/seeds/`, covering every requested collection (inventory sessions/checks are separate). They contain 406 entirely fictional initial records: both municipalities, eight departments, 16 accounts (eight roles in each municipality), 320 scoped permission snapshots, four categories/assets, six registrations, two construction projects, two CIP costs, inventory examples, lifecycle requests, six accounting entries, two demo depreciation policies, reconciliations, eight approvals with histories, document metadata, settings, notifications and seed audit events. Stable IDs and same-municipality references are validated together. Seed documents have no embedded binaries.
+- Added Dexie `ppe-demo` schema versions 1 and 2. Version 1 defines entity stores, scoped/unique indexes and metadata. Version 2 adds Blob storage and the audit transaction index, preserving existing data and revision metadata. Creation-only population validates and loads JSON in its transaction; refresh, empty tables and changed source JSON never trigger reseeding. Missing metadata is reported as an error. Explicit reset is the only seed-restoration operation.
+- Added Zod strict schemas for every entity and versioned transfer envelope. Validates primitive types, enums, dates, safe-integer centavos, unique natural keys, globally distinct IDs, foreign-key-like references, scope, reciprocal registration/asset and CIP/accounting links, inventory check/session consistency, approval subject/status/requester agreement, legal approval event sequences and actor permissions, and the central permission snapshot. Fiscal year and policy values are explicit demo settings.
+- Added typed repositories and per-entity services for getAll, getById, filters/search/offset/limit and appropriate mutation capabilities. Create stamps identity/scope/version/timestamps. Update rejects protected/unknown fields and stale versions. Only draft/returned requests are editable. Request submit/cancel, approval review/return/reject/approve, account status and personal notification read-state have dedicated entry points.
+- Each service resolves the actor from persisted users and checks active status, claimed role/scope and central plus persisted municipality grants. UI permissions are not the authority for data operations. Auditor remains read-only. Administrators have no cross-municipality override; local dataset management/export is an explicit grant. A reference-data grant supports internal municipal user/department directories without exposing administrative routes or writes. Depreciation policy configuration uses Accounting or local Administration's explicit grants.
+- Shared write transactions include related records, approval history, event notifications and audit events. Full relationship validation precedes commit, and any persistence/audit/validation failure aborts all changes. Approved request status remains separate from operational asset lifecycle. Phase 02 does not execute asset recognition, capitalization, depreciation or lifecycle accounting postings; those need their module-specific commands and flowcharts.
+- Added structured validation/not-found/forbidden/invalid-transition/duplicate/conflict/storage errors. Successful mutation responses resolve after commit. Batch create/update commands share a transaction ID; a failure in any command rolls back the entire batch and its audits.
+- Added municipality-local JSON export/import with format/version and 10 MiB transfer limit. Import validates the whole dataset before replacement, keeps the importing Administrator active, preserves existing audit events, rejects rewritten audit history, advances changed record versions and leaves the other municipality untouched. JSON excludes Blob binaries; matching local files can survive import, and metadata-only imported documents report explicitly that no local file exists.
+- Added reset previews with current record/file counts, a loss warning, exact confirmation phrase, actor/municipality binding, five-minute expiry, single-use token and database revision check. Reset restores only the selected municipality and removes its uploaded files. Historical audit entries survive; removed historical actors are retained as disabled archived identities so audit references remain valid. Therefore reset intentionally retains more history than an empty first-run database.
+- Added local Blob upload/download services with a 5 MiB limit, PDF/PNG/JPEG/text allowlist, filename/extension/MIME/basic signature validation, scope/linked-record checks and draft-state requirements. Blob reading finishes before the IndexedDB write transaction; metadata, Blob, parent attachment link and audits commit together.
+- Added lazy dashboard storage initialization with loading/error/retry states; public landing/login/registration remain available independently of database initialization. Lazy-loading separates the new data layer from the main application bundle. Administrator System Settings now has functional JSON export/import controls and a native reset confirmation dialog. Broader settings and domain module screens remain outside this phase.
+- Installed Dexie `^4.4.6`, Zod `^4.6.7` and development-only fake-indexeddb `^6.2.6`; updated the lockfile. The first dependency install hit the workspace's npm-cache restriction and was successfully rerun with the environment's approval mechanism. No dependency vulnerabilities were reported by installation.
+
+### Changed files
+
+| Files | Purpose |
+| --- | --- |
+| `src/mock/seeds/*.json`, `src/mock/seeds/index.ts` | All initial fictional data and validated seed loader |
+| `src/domain/data.ts`, `src/domain/models.ts`, `src/domain/workflow.ts`, `src/domain/permissions.ts` | Entity/dataset contracts, category/settings models, approval transition policy and explicit data/reference grants |
+| `src/mock/database.ts`, `src/mock/repositories/entityRepository.ts`, `src/mock/unitOfWork.ts` | Dexie versions, typed adapters, persisted authorization, atomic commit and auditing |
+| `src/mock/validation/schemas.ts`, `src/mock/validation/dataset.ts` | Zod entity/envelope schemas and cross-table integrity validation |
+| `src/services/contracts.ts`, `src/services/dataContracts.ts`, `src/services/errors.ts` | Typed operations, capabilities, confirmation DTOs and structured errors |
+| `src/services/entityAccess.ts`, `src/services/entityService.ts`, `src/services/datasetService.ts`, `src/services/documentService.ts`, `src/services/mockDataService.ts` | Scoped readers/mutations, approvals/status/notifications, batches, dataset tools, documents and composition root |
+| `src/features/data/MockDataBoundary.tsx`, `src/features/data/DemoDataTools.tsx`, `src/App.tsx`, `src/pages/dashboard/ModulePage.tsx` | Dashboard initialization and reviewable data controls in the existing settings shell |
+| `tests/data.test.ts`, `package.json`, `package-lock.json`, `tsconfig.app.json`, `tsconfig.test.json` | Data-layer tests/dependencies and JSON module compilation |
+| `README.md`, `src/services/README.md`, `DEVELOPMENT_PROGRESS.md` | Current status, service/API guide, migration/transfer rules and phase results |
+
+### Verification results
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | PASS: strict application TypeScript and Vite projects. |
+| `npm run build` | PASS: production build; data layer and settings controls are separate chunks. The initial large-chunk warning was resolved by lazy loading. |
+| `npm run lint` | PASS: no errors or warnings. |
+| `npm test` | PASS: 50 tests across six suites (20 prior role/access tests and 30 data/migration tests). Uses actual Dexie with fake-indexeddb. |
+| `git diff --check` | PASS: no whitespace errors. |
+| Browser smoke test | Unavailable: Browser skill setup completed, but the runtime reported no available browser and discovery returned an empty list. Rendered controls, native browser storage behavior and visual/keyboard interaction were not verified. The temporary Vite process was stopped. |
+
+Tests cover validated seed relationships, all 16 identities, concurrent first creation, reopen persistence, CRUD/filtering, natural-key and concurrent duplicates, monetary/date/input validation, protected fields, canonical identity/role/scope checks, disabled accounts and last-admin protection, exposed capabilities, submissions and related audits/notifications, review/return/resubmit/approve/cancel, self-approval and stale decisions, atomic batches, audit-write failure rollback, own-notification state, scoped import/export and history protection, reset phrase/identity/expiry/revision/reuse rules, historical actor archival, missing metadata, inventory observer stamping/duplicates, invalid CIP/accounting links and fabricated histories, Blob validation/persistence/rollback/reset and the v1→v2 migration without reseeding.
+
+### Important assumptions and next required tasks
+
+- The original five detailed flowcharts are still unavailable. Request submission/approval primitives are conservative demo rules, not the complete future acquisition, engineering/budget, inventory, lifecycle or accounting workflow.
+- All seed names, emails, documents, costs and policies are fictional. Account emails can repeat across municipalities; IDs are distinct. Credentials/login and persisted mock session handling remain for the authentication phase. The existing UI preview is retained, while every data request checks the persisted user.
+- Permissions JSON is a validated snapshot of the central policy and cannot grant arbitrary new privileges on import. Later policy changes require a seed update and explicit database migration, not a refresh-time reset.
+- Dataset replacement retains history and archives missing historical actors, deliberately prioritizing resolvable audit records over reproducing the exact first-run row count. Attachment binaries require separate backup if needed; JSON transfer is explicitly metadata/records only.
+- Whole-dataset validation and broad write transactions are appropriate for this small demo. Large datasets, cross-device synchronization, legal accounting verification and production authentication/audit tamper resistance are not claimed.
+- Next: follow the user's next phase scope. Future module components should call the documented typed services, add narrowly scoped domain transaction commands as their workflows are implemented, and avoid direct IndexedDB or source-JSON access. Full module pages, live dashboard metrics, business execution/postings and formatted reports remain pending.

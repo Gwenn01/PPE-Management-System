@@ -1,0 +1,46 @@
+[
+  {
+    "id": "botolan-project-hall",
+    "municipalityId": "botolan",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "workflowStatus": "draft",
+    "requestedById": "demo-botolan-property_officer",
+    "submittedAt": null,
+    "documentIds": [
+      "botolan-document-plan"
+    ],
+    "name": "Botolan Fictional Records Annex",
+    "projectNumber": "BOTOLAN-DEMO-CIP-01",
+    "location": "Botolan Demo Civic Site",
+    "departmentId": "botolan-dept-engineering",
+    "budgetAmount": 850000000,
+    "startDate": "2026-08-01",
+    "completionDate": null,
+    "projectStatus": "in_progress",
+    "capitalizedAssetId": null
+  },
+  {
+    "id": "san_antonio-project-hall",
+    "municipalityId": "san_antonio",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "workflowStatus": "draft",
+    "requestedById": "demo-san_antonio-property_officer",
+    "submittedAt": null,
+    "documentIds": [
+      "san_antonio-document-plan"
+    ],
+    "name": "San Antonio Fictional Records Annex",
+    "projectNumber": "SAN_ANTONIO-DEMO-CIP-01",
+    "location": "San Antonio Demo Civic Site",
+    "departmentId": "san_antonio-dept-engineering",
+    "budgetAmount": 850000000,
+    "startDate": "2026-08-01",
+    "completionDate": null,
+    "projectStatus": "in_progress",
+    "capitalizedAssetId": null
+  }
+]

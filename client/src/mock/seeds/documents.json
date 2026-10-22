@@ -1,0 +1,30 @@
+[
+  {
+    "id": "botolan-document-plan",
+    "municipalityId": "botolan",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "fileName": "fictional-annex-plan.pdf",
+    "mimeType": "application/pdf",
+    "sizeBytes": 512,
+    "uploadedById": "demo-botolan-engineering_office",
+    "entityType": "project",
+    "entityId": "botolan-project-hall",
+    "storageKey": "seed:botolan-document-plan"
+  },
+  {
+    "id": "san_antonio-document-plan",
+    "municipalityId": "san_antonio",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "fileName": "fictional-annex-plan.pdf",
+    "mimeType": "application/pdf",
+    "sizeBytes": 512,
+    "uploadedById": "demo-san_antonio-engineering_office",
+    "entityType": "project",
+    "entityId": "san_antonio-project-hall",
+    "storageKey": "seed:san_antonio-document-plan"
+  }
+]

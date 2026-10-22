@@ -1,0 +1,82 @@
+[
+  {
+    "id": "botolan-dept-general",
+    "municipalityId": "botolan",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "code": "GENERAL",
+    "name": "Demo General Services",
+    "active": true
+  },
+  {
+    "id": "botolan-dept-engineering",
+    "municipalityId": "botolan",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "code": "ENGINEERING",
+    "name": "Demo Engineering Office",
+    "active": true
+  },
+  {
+    "id": "botolan-dept-accounting",
+    "municipalityId": "botolan",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "code": "ACCOUNTING",
+    "name": "Demo Accounting Office",
+    "active": true
+  },
+  {
+    "id": "botolan-dept-budget",
+    "municipalityId": "botolan",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "code": "BUDGET",
+    "name": "Demo Budget Office",
+    "active": true
+  },
+  {
+    "id": "san_antonio-dept-general",
+    "municipalityId": "san_antonio",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "code": "GENERAL",
+    "name": "Demo General Services",
+    "active": true
+  },
+  {
+    "id": "san_antonio-dept-engineering",
+    "municipalityId": "san_antonio",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "code": "ENGINEERING",
+    "name": "Demo Engineering Office",
+    "active": true
+  },
+  {
+    "id": "san_antonio-dept-accounting",
+    "municipalityId": "san_antonio",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "code": "ACCOUNTING",
+    "name": "Demo Accounting Office",
+    "active": true
+  },
+  {
+    "id": "san_antonio-dept-budget",
+    "municipalityId": "san_antonio",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "code": "BUDGET",
+    "name": "Demo Budget Office",
+    "active": true
+  }
+]

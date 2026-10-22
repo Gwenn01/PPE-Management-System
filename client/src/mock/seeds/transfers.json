@@ -1,0 +1,40 @@
+[
+  {
+    "id": "botolan-transfer-pump",
+    "municipalityId": "botolan",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "workflowStatus": "submitted",
+    "requestedById": "demo-botolan-property_officer",
+    "submittedAt": "2026-10-01T08:00:00.000Z",
+    "documentIds": [],
+    "assetId": "botolan-asset-2",
+    "fromDepartmentId": "botolan-dept-general",
+    "toDepartmentId": "botolan-dept-engineering",
+    "fromCustodianId": "demo-botolan-property_officer",
+    "toCustodianId": "demo-botolan-engineering_office",
+    "destinationLocation": "Botolan Demo Engineering Store",
+    "effectiveDate": "2026-10-22",
+    "reason": "Fictional equipment deployment."
+  },
+  {
+    "id": "san_antonio-transfer-pump",
+    "municipalityId": "san_antonio",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "workflowStatus": "submitted",
+    "requestedById": "demo-san_antonio-property_officer",
+    "submittedAt": "2026-10-01T08:00:00.000Z",
+    "documentIds": [],
+    "assetId": "san_antonio-asset-2",
+    "fromDepartmentId": "san_antonio-dept-general",
+    "toDepartmentId": "san_antonio-dept-engineering",
+    "fromCustodianId": "demo-san_antonio-property_officer",
+    "toCustodianId": "demo-san_antonio-engineering_office",
+    "destinationLocation": "San Antonio Demo Engineering Store",
+    "effectiveDate": "2026-10-22",
+    "reason": "Fictional equipment deployment."
+  }
+]

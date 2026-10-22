@@ -11,6 +11,7 @@ export const resources = [
   'maintenance_requests', 'disposal_requests', 'recognition', 'depreciation', 'cip_costs',
   'disposal_review', 'reconciliations', 'registration_approvals', 'capitalization_approvals',
   'correction_approvals', 'lifecycle_approvals', 'reports', 'audit_logs', 'documents', 'notifications',
+  'asset_categories', 'accounting_records', 'demo_data', 'reference_data',
 ] as const
 export type Resource = (typeof resources)[number]
 export interface PermissionRequirement { resource: Resource; action: Action }
@@ -28,6 +29,11 @@ function grant(resource: Resource, roles: readonly Role[], allowed: readonly Act
 
 // Explicit grants only. Manage does not implicitly grant any other action.
 grant('dashboard', roleList, ['read'])
+grant('reference_data', roleList, ['read'])
+grant('asset_categories', roleList, ['read'])
+grant('asset_categories', ['administrator'], ['create', 'update'])
+grant('accounting_records', ['accounting_officer', 'auditor'], ['read'])
+grant('demo_data', ['administrator'], ['read', 'export', 'manage'])
 for (const resource of ['users', 'departments', 'permissions', 'settings'] as const) {
   grant(resource, ['administrator'], ['read', 'create', 'update', 'manage'])
 }

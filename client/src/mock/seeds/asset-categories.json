@@ -1,0 +1,42 @@
+[
+  {
+    "id": "botolan-category-ict",
+    "municipalityId": "botolan",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "code": "ICT",
+    "name": "Demo ICT Equipment",
+    "usefulLifeMonths": 60
+  },
+  {
+    "id": "botolan-category-machinery",
+    "municipalityId": "botolan",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "code": "MACHINERY",
+    "name": "Demo Municipal Machinery",
+    "usefulLifeMonths": 120
+  },
+  {
+    "id": "san_antonio-category-ict",
+    "municipalityId": "san_antonio",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "code": "ICT",
+    "name": "Demo ICT Equipment",
+    "usefulLifeMonths": 60
+  },
+  {
+    "id": "san_antonio-category-machinery",
+    "municipalityId": "san_antonio",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "code": "MACHINERY",
+    "name": "Demo Municipal Machinery",
+    "usefulLifeMonths": 120
+  }
+]

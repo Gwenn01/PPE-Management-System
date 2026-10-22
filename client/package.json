@@ -8,17 +8,19 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "typecheck": "tsc -b",
-    "test": "tsc -p tsconfig.test.json && node --test .test-build/tests/architecture.test.js",
+    "test": "tsc -p tsconfig.test.json && node --test .test-build/tests/architecture.test.js .test-build/tests/data.test.js",
     "preview": "vite preview"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
     "axios": "^1.20.0",
+    "dexie": "^4.4.6",
     "lucide-react": "^1.59.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.4",
-    "tailwindcss": "^4.3.3"
+    "tailwindcss": "^4.3.3",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -29,6 +31,7 @@
     "eslint": "^10.10.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.6",
+    "fake-indexeddb": "^6.2.6",
     "globals": "^17.12.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.69.0",

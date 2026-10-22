@@ -1,0 +1,36 @@
+[
+  {
+    "id": "botolan-maintenance-workstation",
+    "municipalityId": "botolan",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "workflowStatus": "draft",
+    "requestedById": "demo-botolan-property_officer",
+    "submittedAt": null,
+    "documentIds": [],
+    "assetId": "botolan-asset-1",
+    "description": "Fictional workstation preventive cleaning",
+    "estimatedCost": 250000,
+    "actualCost": null,
+    "scheduledDate": "2026-11-01",
+    "completedAt": null
+  },
+  {
+    "id": "san_antonio-maintenance-workstation",
+    "municipalityId": "san_antonio",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "workflowStatus": "draft",
+    "requestedById": "demo-san_antonio-property_officer",
+    "submittedAt": null,
+    "documentIds": [],
+    "assetId": "san_antonio-asset-1",
+    "description": "Fictional workstation preventive cleaning",
+    "estimatedCost": 250000,
+    "actualCost": null,
+    "scheduledDate": "2026-11-01",
+    "completedAt": null
+  }
+]

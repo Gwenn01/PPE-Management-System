@@ -1,0 +1,34 @@
+[
+  {
+    "id": "botolan-check-workstation",
+    "municipalityId": "botolan",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "sessionId": "botolan-inventory-october",
+    "assetId": "botolan-asset-1",
+    "checkedById": "demo-botolan-inventory_personnel",
+    "checkedAt": "2026-10-01T08:00:00.000Z",
+    "found": true,
+    "observedLocation": "Botolan Demo Archive Desk",
+    "observedCustodianId": "demo-botolan-property_officer",
+    "observedCondition": "good",
+    "notes": "Fictional room-location mismatch for testing."
+  },
+  {
+    "id": "san_antonio-check-workstation",
+    "municipalityId": "san_antonio",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "sessionId": "san_antonio-inventory-october",
+    "assetId": "san_antonio-asset-1",
+    "checkedById": "demo-san_antonio-inventory_personnel",
+    "checkedAt": "2026-10-01T08:00:00.000Z",
+    "found": true,
+    "observedLocation": "San Antonio Demo Archive Desk",
+    "observedCustodianId": "demo-san_antonio-property_officer",
+    "observedCondition": "good",
+    "notes": "Fictional room-location mismatch for testing."
+  }
+]

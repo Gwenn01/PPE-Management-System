@@ -1,6 +1,6 @@
 import type { EntityId, MunicipalityId, ScopedEntity, User } from '../domain/models.js'
 
-export type ServiceErrorCode = 'forbidden' | 'not_found' | 'validation' | 'conflict' | 'storage_unavailable'
+export type ServiceErrorCode = 'forbidden' | 'not_found' | 'validation' | 'conflict' | 'storage_unavailable' | 'invalid_transition' | 'duplicate'
 export type ServiceResult<T> =
   | { ok: true; data: T }
   | { ok: false; error: { code: ServiceErrorCode; message: string; fields?: Record<string, string> } }

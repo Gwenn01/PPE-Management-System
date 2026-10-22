@@ -1,0 +1,36 @@
+[
+  {
+    "id": "botolan-reconciliation-september",
+    "municipalityId": "botolan",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "workflowStatus": "draft",
+    "requestedById": "demo-botolan-accounting_officer",
+    "submittedAt": null,
+    "documentIds": [],
+    "periodStart": "2026-09-01",
+    "periodEnd": "2026-09-30",
+    "propertyBalance": 19000000,
+    "accountingBalance": 19000000,
+    "differences": [],
+    "adjustmentRecordIds": []
+  },
+  {
+    "id": "san_antonio-reconciliation-september",
+    "municipalityId": "san_antonio",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "workflowStatus": "draft",
+    "requestedById": "demo-san_antonio-accounting_officer",
+    "submittedAt": null,
+    "documentIds": [],
+    "periodStart": "2026-09-01",
+    "periodEnd": "2026-09-30",
+    "propertyBalance": 19000000,
+    "accountingBalance": 19000000,
+    "differences": [],
+    "adjustmentRecordIds": []
+  }
+]

@@ -4,13 +4,17 @@ Accounting Information System for Property, Plant, and Equipment Management for 
 
 ## Frontend-only development approach
 
-Business operations will run entirely in the browser through typed, replaceable frontend services and mock repositories. Local JSON files will supply initial seed data; IndexedDB will persist subsequent changes. The browser will never write changes to source JSON. localStorage/sessionStorage are reserved for demo sessions and lightweight preferences. No real backend or external database will be called; installed Axios is currently unused.
+Data operations run entirely in the browser through typed, replaceable frontend services and mock repositories. Local JSON files supply initial fictional data; Dexie/IndexedDB persists subsequent changes. Zod validates inputs and dataset relationships. The browser never writes changes to source JSON. localStorage/sessionStorage are reserved for demo sessions and lightweight preferences. No real backend or external database is called; installed Axios is unused.
 
-Mock identities support eight internal roles with municipality-specific permissions. Authentication is a demo, and accounting policies will be configurable DEMO settings, not legally verified rules. Future workflow transitions, related-record updates, approval histories and audit events must be validated by the mock service layer as well as route guards.
+Mock identities support eight internal roles with municipality-specific permissions. Authentication is a demo, and accounting policies are configurable DEMO settings, not legally verified rules. The data services check persisted identity, role, municipality, inputs, versions and allowed transitions; mutations and their audit entries commit atomically.
 
-**Current status (Phase 01):** the existing branded UI now has an eight-role, two-municipality preview, centralized resource/action permissions, route guards, domain models and typed service contracts. All permissions are municipality-local, including Administrator permissions; there is no cross-municipality override. Select the demo municipality on dashboard home and the demo role in the topbar (on dashboard home on small screens). Denied routes show an access message.
+**Current status (Phase 02):** the existing branded UI has an eight-role, two-municipality preview and a persistent mock data layer with 24 JSON seed files, 406 fictional initial records and 16 demo accounts. Database creation seeds once; refresh/reopen preserves edits. All permissions are municipality-local, including Administrator permissions; there is no cross-municipality override. Select the municipality on dashboard home and the demo role in the topbar (on dashboard home on small screens).
 
-Login/registration still do not create sessions or accounts; direct dashboard access defaults to a Botolan Administrator preview. Preview preferences are stored in localStorage through a typed demo identity service, and switching municipality selects a distinct mock identity rather than extending access. Business module pages, JSON domain seeds, IndexedDB, real mock session handling and workflow operations remain for later authorized phases.
+Administrator → **System Settings** provides JSON export/import and a reset preview with an exact-phrase confirmation dialog. JSON exports omit attachment binaries. Reset restores the current municipality's seeds and removes its uploads while retaining audit history; the other municipality is preserved. Local document metadata and validated Blobs are stored separately in IndexedDB.
+
+Login/registration still do not create sessions or accounts; direct dashboard access defaults to a Botolan Administrator preview. Preview preferences remain in localStorage. Data operations resolve the selected identity against persisted users. Full mock sessions, business module screens, asset recognition/lifecycle execution and accounting calculations remain for their authorized phases. The service foundation supports audited CRUD, request submission, approval status/history and atomic multi-record updates.
+
+See [the service guide](./src/services/README.md) for typed usage, entity capabilities, schema/migration policy, permission assumptions and transfer/reset limits.
 
 Run from `client/` after dependencies are installed with `npm ci`:
 
@@ -18,10 +22,10 @@ Run from `client/` after dependencies are installed with `npm ci`:
 - `npm run build` — run TypeScript compilation and create a production build.
 - `npm run lint` — run ESLint.
 - `npm run typecheck` — check application and Vite TypeScript projects (application strict mode enabled).
-- `npm test` — compile and run architecture unit tests using Node's built-in test runner, without additional packages.
+- `npm test` — compile and run role/access and mock-data tests using Node's built-in runner, real Dexie and fake-indexeddb.
 - `npm run preview` — preview the production build.
 
-Phase 01 typecheck, build, lint and all 20 unit tests passed. Tests cover role completeness, scoped identities, permission denials and route allowlists for both municipalities. See [DEVELOPMENT_PROGRESS.md](./DEVELOPMENT_PROGRESS.md) for the audit, phase results, architectural decisions and remaining tasks. Implement only the phase explicitly requested, preserving the existing visual design.
+Phase 02 typecheck, build, lint and all 50 tests passed. Tests cover initialization, persistence, CRUD, duplicates, permissions, approval history, transaction rollback, import/export, reset, file storage and migrations. Interactive browser verification was unavailable in this session. See [DEVELOPMENT_PROGRESS.md](./DEVELOPMENT_PROGRESS.md) for the audit, phase results and remaining tasks. Implement only the phase explicitly requested, preserving the existing visual design.
 
 ## Original Vite template reference
 

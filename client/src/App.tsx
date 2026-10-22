@@ -9,6 +9,7 @@ import RequirePermission from './features/access/RequirePermission'
 import AccessDenied from './features/access/AccessDenied'
 import CurrentUserProvider from './context/CurrentUserProvider'
 import { dashboardRoute, navItems } from './config/navigation'
+import MockDataBoundary from './features/data/MockDataBoundary'
 
 function App() {
   return (
@@ -19,7 +20,7 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
 
-          <Route path="/dashboard" element={<DashboardLayout />}>
+          <Route path="/dashboard" element={<MockDataBoundary><DashboardLayout /></MockDataBoundary>}>
             <Route index element={
               <RequirePermission permission={dashboardRoute.permission}>
                 <DashboardHome />

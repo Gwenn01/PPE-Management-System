@@ -1,0 +1,34 @@
+[
+  {
+    "id": "botolan-cip-foundation",
+    "municipalityId": "botolan",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "workflowStatus": "approved",
+    "requestedById": "demo-botolan-accounting_officer",
+    "submittedAt": "2026-10-01T08:00:00.000Z",
+    "documentIds": [],
+    "projectId": "botolan-project-hall",
+    "description": "Demo foundation progress billing",
+    "amount": 175000000,
+    "incurredDate": "2026-09-15",
+    "accountingRecordId": "botolan-account-cip"
+  },
+  {
+    "id": "san_antonio-cip-foundation",
+    "municipalityId": "san_antonio",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "workflowStatus": "approved",
+    "requestedById": "demo-san_antonio-accounting_officer",
+    "submittedAt": "2026-10-01T08:00:00.000Z",
+    "documentIds": [],
+    "projectId": "san_antonio-project-hall",
+    "description": "Demo foundation progress billing",
+    "amount": 175000000,
+    "incurredDate": "2026-09-15",
+    "accountingRecordId": "san_antonio-account-cip"
+  }
+]

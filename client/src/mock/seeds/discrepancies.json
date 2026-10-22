@@ -1,0 +1,40 @@
+[
+  {
+    "id": "botolan-discrepancy-location",
+    "municipalityId": "botolan",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "workflowStatus": "draft",
+    "requestedById": "demo-botolan-property_officer",
+    "submittedAt": null,
+    "documentIds": [],
+    "inventoryCheckId": "botolan-check-workstation",
+    "assetId": "botolan-asset-1",
+    "kind": "location",
+    "description": "Demo workstation found at the archive desk.",
+    "proposedCorrection": {
+      "location": "Botolan Demo Archive Desk"
+    },
+    "resolvedAt": null
+  },
+  {
+    "id": "san_antonio-discrepancy-location",
+    "municipalityId": "san_antonio",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "workflowStatus": "draft",
+    "requestedById": "demo-san_antonio-property_officer",
+    "submittedAt": null,
+    "documentIds": [],
+    "inventoryCheckId": "san_antonio-check-workstation",
+    "assetId": "san_antonio-asset-1",
+    "kind": "location",
+    "description": "Demo workstation found at the archive desk.",
+    "proposedCorrection": {
+      "location": "San Antonio Demo Archive Desk"
+    },
+    "resolvedAt": null
+  }
+]

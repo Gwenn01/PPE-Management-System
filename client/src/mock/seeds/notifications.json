@@ -1,0 +1,28 @@
+[
+  {
+    "id": "botolan-notification-approval",
+    "municipalityId": "botolan",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "recipientId": "demo-botolan-approving_officer",
+    "title": "Fictional registrations pending",
+    "message": "Demo data only: review the sample registration queue.",
+    "severity": "info",
+    "href": "/dashboard/approvals/registrations",
+    "readAt": null
+  },
+  {
+    "id": "san_antonio-notification-approval",
+    "municipalityId": "san_antonio",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "recipientId": "demo-san_antonio-approving_officer",
+    "title": "Fictional registrations pending",
+    "message": "Demo data only: review the sample registration queue.",
+    "severity": "info",
+    "href": "/dashboard/approvals/registrations",
+    "readAt": null
+  }
+]

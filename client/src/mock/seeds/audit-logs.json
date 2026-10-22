@@ -1,0 +1,34 @@
+[
+  {
+    "id": "botolan-audit-seed",
+    "municipalityId": "botolan",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "actorId": "demo-botolan-administrator",
+    "actorRole": "administrator",
+    "resource": "demo_data",
+    "entityId": "botolan",
+    "action": "seed",
+    "occurredAt": "2026-10-01T08:00:00.000Z",
+    "reason": "Initial fictional seed dataset; no real municipal records.",
+    "changes": [],
+    "transactionId": "botolan-seed-transaction"
+  },
+  {
+    "id": "san_antonio-audit-seed",
+    "municipalityId": "san_antonio",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "actorId": "demo-san_antonio-administrator",
+    "actorRole": "administrator",
+    "resource": "demo_data",
+    "entityId": "san_antonio",
+    "action": "seed",
+    "occurredAt": "2026-10-01T08:00:00.000Z",
+    "reason": "Initial fictional seed dataset; no real municipal records.",
+    "changes": [],
+    "transactionId": "san_antonio-seed-transaction"
+  }
+]

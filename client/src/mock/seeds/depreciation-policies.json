@@ -1,0 +1,34 @@
+[
+  {
+    "id": "botolan-policy-straight-line",
+    "municipalityId": "botolan",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "name": "DEMO configurable straight-line assumptions",
+    "isDemo": true,
+    "method": "straight_line",
+    "usefulLifeMonths": 60,
+    "residualValuePercent": 5,
+    "recognitionThreshold": 5000000,
+    "startConvention": "following_month",
+    "effectiveFrom": "2026-01-01",
+    "active": true
+  },
+  {
+    "id": "san_antonio-policy-straight-line",
+    "municipalityId": "san_antonio",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "name": "DEMO configurable straight-line assumptions",
+    "isDemo": true,
+    "method": "straight_line",
+    "usefulLifeMonths": 60,
+    "residualValuePercent": 5,
+    "recognitionThreshold": 5000000,
+    "startConvention": "following_month",
+    "effectiveFrom": "2026-01-01",
+    "active": true
+  }
+]

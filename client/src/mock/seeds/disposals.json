@@ -1,0 +1,36 @@
+[
+  {
+    "id": "botolan-disposal-pump",
+    "municipalityId": "botolan",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "workflowStatus": "draft",
+    "requestedById": "demo-botolan-property_officer",
+    "submittedAt": null,
+    "documentIds": [],
+    "assetId": "botolan-asset-2",
+    "reason": "Fictional end-of-life evaluation request; not yet approved.",
+    "method": "other",
+    "proceeds": null,
+    "disposedAt": null,
+    "accountingRecordId": null
+  },
+  {
+    "id": "san_antonio-disposal-pump",
+    "municipalityId": "san_antonio",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "workflowStatus": "draft",
+    "requestedById": "demo-san_antonio-property_officer",
+    "submittedAt": null,
+    "documentIds": [],
+    "assetId": "san_antonio-asset-2",
+    "reason": "Fictional end-of-life evaluation request; not yet approved.",
+    "method": "other",
+    "proceeds": null,
+    "disposedAt": null,
+    "accountingRecordId": null
+  }
+]

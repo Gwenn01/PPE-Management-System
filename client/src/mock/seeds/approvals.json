@@ -1,0 +1,246 @@
+[
+  {
+    "id": "botolan-approval-registration",
+    "municipalityId": "botolan",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "workflowStatus": "submitted",
+    "requestedById": "demo-botolan-property_officer",
+    "submittedAt": "2026-10-01T08:00:00.000Z",
+    "documentIds": [],
+    "subjectType": "registration",
+    "subjectId": "botolan-registration-pending",
+    "assignedRole": "approving_officer",
+    "history": [
+      {
+        "actorId": "demo-botolan-property_officer",
+        "actorRole": "property_officer",
+        "action": "submit",
+        "fromStatus": "draft",
+        "toStatus": "submitted",
+        "reason": "Seeded fictional submission.",
+        "occurredAt": "2026-10-01T08:00:00.000Z"
+      }
+    ],
+    "decidedAt": null
+  },
+  {
+    "id": "botolan-approval-transfer",
+    "municipalityId": "botolan",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "workflowStatus": "submitted",
+    "requestedById": "demo-botolan-property_officer",
+    "submittedAt": "2026-10-01T08:00:00.000Z",
+    "documentIds": [],
+    "subjectType": "transfer",
+    "subjectId": "botolan-transfer-pump",
+    "assignedRole": "approving_officer",
+    "history": [
+      {
+        "actorId": "demo-botolan-property_officer",
+        "actorRole": "property_officer",
+        "action": "submit",
+        "fromStatus": "draft",
+        "toStatus": "submitted",
+        "reason": "Seeded fictional submission.",
+        "occurredAt": "2026-10-01T08:00:00.000Z"
+      }
+    ],
+    "decidedAt": null
+  },
+  {
+    "id": "san_antonio-approval-registration",
+    "municipalityId": "san_antonio",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "workflowStatus": "submitted",
+    "requestedById": "demo-san_antonio-property_officer",
+    "submittedAt": "2026-10-01T08:00:00.000Z",
+    "documentIds": [],
+    "subjectType": "registration",
+    "subjectId": "san_antonio-registration-pending",
+    "assignedRole": "approving_officer",
+    "history": [
+      {
+        "actorId": "demo-san_antonio-property_officer",
+        "actorRole": "property_officer",
+        "action": "submit",
+        "fromStatus": "draft",
+        "toStatus": "submitted",
+        "reason": "Seeded fictional submission.",
+        "occurredAt": "2026-10-01T08:00:00.000Z"
+      }
+    ],
+    "decidedAt": null
+  },
+  {
+    "id": "san_antonio-approval-transfer",
+    "municipalityId": "san_antonio",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "workflowStatus": "submitted",
+    "requestedById": "demo-san_antonio-property_officer",
+    "submittedAt": "2026-10-01T08:00:00.000Z",
+    "documentIds": [],
+    "subjectType": "transfer",
+    "subjectId": "san_antonio-transfer-pump",
+    "assignedRole": "approving_officer",
+    "history": [
+      {
+        "actorId": "demo-san_antonio-property_officer",
+        "actorRole": "property_officer",
+        "action": "submit",
+        "fromStatus": "draft",
+        "toStatus": "submitted",
+        "reason": "Seeded fictional submission.",
+        "occurredAt": "2026-10-01T08:00:00.000Z"
+      }
+    ],
+    "decidedAt": null
+  },
+  {
+    "id": "botolan-approval-recognized-1",
+    "municipalityId": "botolan",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "workflowStatus": "approved",
+    "requestedById": "demo-botolan-property_officer",
+    "submittedAt": "2026-10-01T08:00:00.000Z",
+    "documentIds": [],
+    "subjectType": "registration",
+    "subjectId": "botolan-registration-1",
+    "assignedRole": "approving_officer",
+    "history": [
+      {
+        "actorId": "demo-botolan-property_officer",
+        "actorRole": "property_officer",
+        "action": "submit",
+        "fromStatus": "draft",
+        "toStatus": "submitted",
+        "reason": "Fictional historical registration submission.",
+        "occurredAt": "2026-10-01T08:00:00.000Z"
+      },
+      {
+        "actorId": "demo-botolan-approving_officer",
+        "actorRole": "approving_officer",
+        "action": "approve",
+        "fromStatus": "submitted",
+        "toStatus": "approved",
+        "reason": "Fictional historical registration approval.",
+        "occurredAt": "2026-10-01T08:00:00.000Z"
+      }
+    ],
+    "decidedAt": "2026-10-01T08:00:00.000Z"
+  },
+  {
+    "id": "botolan-approval-recognized-2",
+    "municipalityId": "botolan",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "workflowStatus": "approved",
+    "requestedById": "demo-botolan-property_officer",
+    "submittedAt": "2026-10-01T08:00:00.000Z",
+    "documentIds": [],
+    "subjectType": "registration",
+    "subjectId": "botolan-registration-2",
+    "assignedRole": "approving_officer",
+    "history": [
+      {
+        "actorId": "demo-botolan-property_officer",
+        "actorRole": "property_officer",
+        "action": "submit",
+        "fromStatus": "draft",
+        "toStatus": "submitted",
+        "reason": "Fictional historical registration submission.",
+        "occurredAt": "2026-10-01T08:00:00.000Z"
+      },
+      {
+        "actorId": "demo-botolan-approving_officer",
+        "actorRole": "approving_officer",
+        "action": "approve",
+        "fromStatus": "submitted",
+        "toStatus": "approved",
+        "reason": "Fictional historical registration approval.",
+        "occurredAt": "2026-10-01T08:00:00.000Z"
+      }
+    ],
+    "decidedAt": "2026-10-01T08:00:00.000Z"
+  },
+  {
+    "id": "san_antonio-approval-recognized-1",
+    "municipalityId": "san_antonio",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "workflowStatus": "approved",
+    "requestedById": "demo-san_antonio-property_officer",
+    "submittedAt": "2026-10-01T08:00:00.000Z",
+    "documentIds": [],
+    "subjectType": "registration",
+    "subjectId": "san_antonio-registration-1",
+    "assignedRole": "approving_officer",
+    "history": [
+      {
+        "actorId": "demo-san_antonio-property_officer",
+        "actorRole": "property_officer",
+        "action": "submit",
+        "fromStatus": "draft",
+        "toStatus": "submitted",
+        "reason": "Fictional historical registration submission.",
+        "occurredAt": "2026-10-01T08:00:00.000Z"
+      },
+      {
+        "actorId": "demo-san_antonio-approving_officer",
+        "actorRole": "approving_officer",
+        "action": "approve",
+        "fromStatus": "submitted",
+        "toStatus": "approved",
+        "reason": "Fictional historical registration approval.",
+        "occurredAt": "2026-10-01T08:00:00.000Z"
+      }
+    ],
+    "decidedAt": "2026-10-01T08:00:00.000Z"
+  },
+  {
+    "id": "san_antonio-approval-recognized-2",
+    "municipalityId": "san_antonio",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "workflowStatus": "approved",
+    "requestedById": "demo-san_antonio-property_officer",
+    "submittedAt": "2026-10-01T08:00:00.000Z",
+    "documentIds": [],
+    "subjectType": "registration",
+    "subjectId": "san_antonio-registration-2",
+    "assignedRole": "approving_officer",
+    "history": [
+      {
+        "actorId": "demo-san_antonio-property_officer",
+        "actorRole": "property_officer",
+        "action": "submit",
+        "fromStatus": "draft",
+        "toStatus": "submitted",
+        "reason": "Fictional historical registration submission.",
+        "occurredAt": "2026-10-01T08:00:00.000Z"
+      },
+      {
+        "actorId": "demo-san_antonio-approving_officer",
+        "actorRole": "approving_officer",
+        "action": "approve",
+        "fromStatus": "submitted",
+        "toStatus": "approved",
+        "reason": "Fictional historical registration approval.",
+        "occurredAt": "2026-10-01T08:00:00.000Z"
+      }
+    ],
+    "decidedAt": "2026-10-01T08:00:00.000Z"
+  }
+]

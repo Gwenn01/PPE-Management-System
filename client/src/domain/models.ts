@@ -36,6 +36,18 @@ export interface Department extends ScopedEntity {
   active: boolean
 }
 
+export interface AssetCategory extends ScopedEntity {
+  code: string
+  name: string
+  usefulLifeMonths: number
+}
+
+export interface DemoSetting extends ScopedEntity {
+  key: 'fiscal_year' | 'demo_notice'
+  value: string | number | boolean
+  isDemo: true
+}
+
 /** Approval processing is independent of an asset's operational lifecycle. */
 export type WorkflowStatus = 'draft' | 'submitted' | 'under_review' | 'returned' | 'approved' | 'rejected' | 'cancelled'
 export type AssetLifecycleStatus = 'in_service' | 'under_maintenance' | 'idle' | 'disposed'
@@ -209,7 +221,7 @@ export type ApprovalSubject = 'registration' | 'capitalization' | 'correction' |
 export interface ApprovalHistoryEntry {
   actorId: EntityId
   actorRole: Role
-  action: 'submit' | 'approve' | 'reject' | 'return' | 'cancel'
+  action: 'submit' | 'review' | 'approve' | 'reject' | 'return' | 'cancel'
   fromStatus: WorkflowStatus
   toStatus: WorkflowStatus
   reason: string
@@ -230,7 +242,7 @@ export interface Document extends ScopedEntity {
   mimeType: string
   sizeBytes: number
   uploadedById: EntityId
-  entityType: ApprovalSubject | 'project' | 'inventory'
+  entityType: ApprovalSubject | 'project' | 'inventory' | 'cip_cost'
   entityId: EntityId
   storageKey: string
 }
