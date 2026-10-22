@@ -48,7 +48,7 @@ export default function AssetRegistryModule({ module }: { module: 'assets' | 'as
     if (result.ok) { setData(result.data); setError('') } else setError(result.error.message)
     setLoading(false)
     return result.ok ? result.data : null
-  }, [requestContext.sessionId, requestContext.actor.id, requestContext.municipalityId])
+  }, [requestContext])
   useEffect(() => { void Promise.resolve().then(reload) }, [reload])
   const current = data?.registrations.find((r) => r.id === (viewRequest ?? activeId))
   const update = <K extends keyof RegistrationDraft>(key: K, value: RegistrationDraft[K]) => setDraft((prev) => ({ ...prev, [key]: value }))

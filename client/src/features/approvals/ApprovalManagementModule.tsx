@@ -61,7 +61,7 @@ export default function ApprovalManagementModule({ module }: { module: string })
   const { notify } = useToast()
   const initialView: View = module === 'approvals/returned' ? 'returned' : module === 'approvals/history' ? 'history' : 'pending'
   const initialType: ApprovalSubject | '' = module === 'approvals/registrations' ? 'registration' : module === 'approvals/capitalization' ? 'capitalization' : ''
-  const permittedModuleTypes: readonly ApprovalSubject[] = module === 'approvals/corrections' ? ['correction', 'reconciliation'] : module === 'approvals/lifecycle' ? ['transfer', 'maintenance', 'disposal'] : approvalTypes
+  const permittedModuleTypes = useMemo<readonly ApprovalSubject[]>(() => module === 'approvals/corrections' ? ['correction', 'reconciliation'] : module === 'approvals/lifecycle' ? ['transfer', 'maintenance', 'disposal'] : approvalTypes, [module])
   const [view, setView] = useState<View>(initialView)
   const [type, setType] = useState<ApprovalSubject | ''>(initialType)
   const [status, setStatus] = useState('')

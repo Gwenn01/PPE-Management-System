@@ -3,7 +3,7 @@ const AuditorModule = lazy(() => import('../../features/reports/AuditorModule'))
 const ReconciliationModule = lazy(() => import('../../features/reconciliation/ReconciliationModule'))
 const LifecycleModule = lazy(() => import('../../features/lifecycle/LifecycleModule'))
 import { useAuthenticatedUser } from '../../hooks/useAuthenticatedUser'
-import { Construction } from 'lucide-react'
+
 import type { NavItem } from '../../config/navigation'
 import { lazy, Suspense } from 'react'
 
@@ -22,7 +22,7 @@ function AuditTrailByRole() {
   return session.user.role === 'auditor' ? <AuditorModule /> : <AdministratorModule module="audit-trail" />
 }
 
-/** Admin destinations are complete; unfinished business modules keep their clear placeholder. */
+/** Dispatch configured routes to their implemented modules. */
 export default function ModulePage({ item }: { item: NavItem }) {
   if (['transfers', 'maintenance', 'disposal', 'disposal-review'].includes(item.path)) return <Suspense fallback={<p role="status">Loading lifecycle management...</p>}><LifecycleModule key={item.path} module={item.path} /></Suspense>
   if (item.path === 'physical-inventory' || item.path === 'asset-monitoring') return <Suspense fallback={<p role="status">Loading inventory...</p>}><InventoryModule /></Suspense>
@@ -49,37 +49,5 @@ export default function ModulePage({ item }: { item: NavItem }) {
       <AdministratorModule module={item.path as 'users' | 'account-requests' | 'departments' | 'permissions' | 'settings' | 'audit-trail'} />
     </Suspense>
   )
-  return (
-    <div className="mx-auto max-w-6xl">
-      <div className="rounded-2xl border border-line bg-white p-6 sm:p-8">
-        <div className="flex items-center gap-4">
-          <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-mist text-navy">
-            <item.icon className="h-6 w-6" />
-          </span>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-gray">
-              {item.group}
-            </p>
-            <h2 className="text-xl font-extrabold text-navy sm:text-2xl">
-              {item.label}
-            </h2>
-          </div>
-        </div>
-        <p className="mt-4 text-sm text-charcoal sm:text-base">
-          {item.description}
-        </p>
-
-        <div className="mt-8 flex flex-col items-center rounded-xl border border-dashed border-line bg-mist px-6 py-14 text-center">
-          <Construction className="h-8 w-8 text-gray" strokeWidth={1.6} />
-          <p className="mt-3 text-sm font-semibold text-navy">
-            This module is not built yet.
-          </p>
-          <p className="mt-1 max-w-sm text-xs text-charcoal/80">
-            The page is routed and role-protected. The real screen will go here.
-          </p>
-        </div>
-      </div>
-    </div>
-  )
+  return <p role="alert">This destination is unavailable. Return to the dashboard and select a configured module.</p>
 }
-

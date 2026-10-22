@@ -12,10 +12,11 @@ export default function DashboardLayout() {
 
   return (
     <div className="flex min-h-svh bg-mist">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-white focus:p-3">Skip to main content</a>
       <Sidebar open={menuOpen} onClose={closeMenu} />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar onMenuClick={openMenu} />
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">
+        <main id="main-content" tabIndex={-1} className="flex-1 p-4 sm:p-6 lg:p-8">
           {notice && <p className="mx-auto mb-5 max-w-6xl rounded-lg border border-line bg-white px-4 py-3 text-sm text-navy" role="status">{notice}</p>}
           <Outlet />
         </main>

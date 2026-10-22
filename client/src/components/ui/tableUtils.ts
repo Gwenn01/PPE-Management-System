@@ -5,7 +5,7 @@ export function prepareTable<T>(rows: readonly T[], options: { query: string; ge
   const query = options.query.trim().toLocaleLowerCase()
   const pageSize = Number.isFinite(options.pageSize) ? Math.max(1, Math.trunc(options.pageSize)) : 1
   const filtered = rows.filter((row) => (!query || options.getSearchText(row).toLocaleLowerCase().includes(query)) && (!options.filter || options.filter(row)))
-  const sorted = [...filtered]
+  const sorted = filtered
   if (options.sort) {
     const { getValue, direction } = options.sort
     sorted.sort((a, b) => {
@@ -15,6 +15,6 @@ export function prepareTable<T>(rows: readonly T[], options: { query: string; ge
     })
   }
   const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize))
-  const page = Math.min(Math.max(1, options.page), totalPages)
+  const page = Math.min(Number.isFinite(options.page) ? Math.max(1, Math.trunc(options.page)) : 1, totalPages)
   return { items: sorted.slice((page - 1) * pageSize, page * pageSize), page, totalPages, total: sorted.length }
 }

@@ -144,8 +144,8 @@ export default function AdministratorModule({ module }: { module: keyof typeof s
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  const reload = useCallback(async () => { const result = await administratorService.getOverview(requestContext); if (result.ok) { setData(result.data); setError('') } else setError(result.error.message); setLoading(false) }, [requestContext.sessionId, requestContext.municipalityId, requestContext.actor.id])
-  useEffect(() => { let active = true; void administratorService.getOverview(requestContext).then((result) => { if (!active) return; setData(result.ok ? result.data : null); setError(result.ok ? '' : result.error.message); setLoading(false) }); return () => { active = false } }, [reload])
+  const reload = useCallback(async () => { const result = await administratorService.getOverview(requestContext); if (result.ok) { setData(result.data); setError('') } else setError(result.error.message); setLoading(false) }, [requestContext])
+  useEffect(() => { let active = true; void administratorService.getOverview(requestContext).then((result) => { if (!active) return; setData(result.ok ? result.data : null); setError(result.ok ? '' : result.error.message); setLoading(false) }); return () => { active = false } }, [requestContext])
   const run = async <T,>(call: Promise<ServiceResult<T>>, message: string) => { if (busy) return false; setBusy(true); const result = await call; if (result.ok) { await reload(); notify(message) } else { setError(result.error.message) } setBusy(false); return result.ok }
   const ops = data ? { data, context: requestContext, run, busy, reload } : null
   return <div className="mx-auto max-w-7xl space-y-5" aria-busy={loading || busy}>

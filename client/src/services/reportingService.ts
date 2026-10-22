@@ -41,12 +41,17 @@ export function createReportingService(db: MockDatabase = database) {
       return { assets,projects,inventorySessions,inventoryChecks,transfers,disposals,accountingRecords,reconciliations,approvals,auditLogs,users,departments }
     })
     const { assets,projects,inventorySessions,inventoryChecks,transfers,disposals,reconciliations,approvals,auditLogs,users,departments } = records
-    const dept = (id: string | null) => departments.find(d => d.id === id)?.name ?? (id ?? '—')
-    const actor = (id: string) => users.find(u => u.id === id)?.name ?? id
-    const asset = (id: string) => assets.find(a => a.id === id)
+    const departmentById = new Map(departments.map(d => [d.id, d]))
+    const userById = new Map(users.map(u => [u.id, u]))
+    const assetById = new Map(assets.map(a => [a.id, a]))
+    const projectById = new Map(projects.map(p => [p.id, p]))
+    const sessionById = new Map(inventorySessions.map(s => [s.id, s]))
+    const dept = (id: string | null) => departmentById.get(id ?? "")?.name ?? (id ?? '—')
+    const actor = (id: string) => userById.get(id)?.name ?? id
+    const asset = (id: string) => assetById.get(id)
     const range = (value: string) => value.slice(0,10) >= filters.start && value.slice(0,10) <= filters.end
     const assetFilter = (a: typeof assets[number] | undefined) => (!filters.category || a?.category === filters.category) && (!filters.departmentId || a?.departmentId === filters.departmentId)
-    let columns: ReportColumn[] = [], rows: Record<string, ReportValue>[] = []
+    let columns: ReportColumn[], rows: Record<string, ReportValue>[]
     if (filters.type === 'ppe_master') {
       columns = [col('propertyNumber','Property Number'),col('description','Description'),col('category','Category'),col('department','Department'),col('status','Status'),col('acquisitionDate','Acquired'),col('acquisitionCost','Acquisition Cost',true)]
       rows = assets.filter(a => range(a.acquisitionDate) && assetFilter(a) && (!filters.status || a.lifecycleStatus === filters.status)).map(a => ({propertyNumber:a.propertyNumber,description:a.description,category:a.category,department:dept(a.departmentId),status:a.lifecycleStatus,acquisitionDate:a.acquisitionDate,acquisitionCost:a.acquisitionCost}))
@@ -58,14 +63,14 @@ export function createReportingService(db: MockDatabase = database) {
         rows = base.data.depreciation.filter(a => { const original=asset(a.assetId); return range(a.startDate) && assetFilter(original) && (!filters.status || original?.lifecycleStatus === filters.status) }).map(a => ({ propertyNumber:a.propertyNumber,description:a.description,startDate:a.startDate,cost:a.cost,depreciableAmount:a.depreciableAmount,accumulatedDepreciation:a.accumulatedDepreciation,netBookValue:a.netBookValue }))
       } else if (filters.type === 'cip') {
         columns = [col('projectNumber','Project Number'),col('name','Project'),col('department','Department'),col('status','Status'),col('accumulatedCosts','Accumulated Costs',true),col('transferredToPPE','Transferred to PPE',true),col('cipBalance','CIP Balance',true)]
-        rows = base.data.cip.filter(p => {const original=projects.find(x=>x.id===p.projectId);return !!original && range(original.createdAt) && (!filters.departmentId || original.departmentId===filters.departmentId) && (!filters.status || p.status===filters.status)}).map(p=>({projectNumber:p.projectNumber,name:p.name,department:dept(projects.find(x=>x.id===p.projectId)?.departmentId??null),status:p.status,accumulatedCosts:p.accumulatedCosts,transferredToPPE:p.transferredToPPE,cipBalance:p.cipBalance}))
+        rows = base.data.cip.filter(p => {const original=projectById.get(p.projectId);return !!original && range(original.createdAt) && (!filters.departmentId || original.departmentId===filters.departmentId) && (!filters.status || p.status===filters.status)}).map(p=>({projectNumber:p.projectNumber,name:p.name,department:dept(projectById.get(p.projectId)?.departmentId??null),status:p.status,accumulatedCosts:p.accumulatedCosts,transferredToPPE:p.transferredToPPE,cipBalance:p.cipBalance}))
       } else {
         columns = [col('periodStart','Period Start'),col('periodEnd','Period End'),col('status','Status'),col('registryPPE','Captured Registry PPE',true),col('postedPPE','Captured Posted PPE',true),col('difference','Captured Difference',true)]
         rows = reconciliations.filter(r=>r.reconciliationSession?.status==='completed' && range(r.periodEnd) && (!filters.status || r.workflowStatus===filters.status)).map(r=> { const captured = r.reconciliationSession?.captures.at(-1); const matched = captured?.rows ?? []; const registryPPE = matched.reduce((s,x)=>s + x.reference.cost,0); const postedPPE = matched.reduce((s,x)=>s+(x.accounting?.cost??0),0); return {periodStart:r.periodStart,periodEnd:r.periodEnd,status:r.workflowStatus,registryPPE,postedPPE,difference:registryPPE-postedPPE} })
       }
     } else if (filters.type === 'inventory') {
       columns=[col('session','Session'),col('propertyNumber','Property Number'),col('date','Checked At'),col('found','Found'),col('location','Observed Location'),col('condition','Condition'),col('observer','Checked By')]
-      rows=inventoryChecks.filter(c=>range(c.checkedAt)&&assetFilter(asset(c.assetId))&&(!filters.status||String(c.found)===filters.status)).map(c=>({session:inventorySessions.find(s=>s.id===c.sessionId)?.title??c.sessionId,propertyNumber:asset(c.assetId)?.propertyNumber??c.assetId,date:c.checkedAt,found:c.found?'Yes':'No',location:c.observedLocation,condition:c.observedCondition,observer:actor(c.checkedById)}))
+      rows=inventoryChecks.filter(c=>range(c.checkedAt)&&assetFilter(asset(c.assetId))&&(!filters.status||String(c.found)===filters.status)).map(c=>({session:sessionById.get(c.sessionId)?.title??c.sessionId,propertyNumber:asset(c.assetId)?.propertyNumber??c.assetId,date:c.checkedAt,found:c.found?'Yes':'No',location:c.observedLocation,condition:c.observedCondition,observer:actor(c.checkedById)}))
     } else if (filters.type === 'transfers_disposals') {
       columns=[col('type','Transaction'),col('propertyNumber','Property Number'),col('date','Effective Date'),col('department','Department'),col('status','Status'),col('details','Details'),col('proceeds','Disposal Proceeds',true)]
       rows=[...transfers.filter(t=>range(t.effectiveDate)&&assetFilter(asset(t.assetId))&&(!filters.status||t.workflowStatus===filters.status)).map(t=>({type:'Transfer',propertyNumber:asset(t.assetId)?.propertyNumber??t.assetId,date:t.effectiveDate,department:dept(t.toDepartmentId),status:t.workflowStatus,details:t.reason,proceeds:0})),...disposals.filter(d=>range(d.disposedAt??d.createdAt)&&assetFilter(asset(d.assetId))&&(!filters.status||d.workflowStatus===filters.status)).map(d=>({type:'Disposal',propertyNumber:asset(d.assetId)?.propertyNumber??d.assetId,date:d.disposedAt??d.createdAt,department:dept(asset(d.assetId)?.departmentId??null),status:d.workflowStatus,details:d.reason,proceeds:d.proceeds??0}))]
