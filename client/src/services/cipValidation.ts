@@ -30,7 +30,7 @@ export function assertCIPMutable(project: ConstructionProject) {
 }
 export async function projectCIPBalance(db: MockDatabase, projectId: string): Promise<number> {
   const entries = await db.entity('accountingRecords').where('projectId').equals(projectId).toArray()
-  return safeTotal(entries.filter(e => e.kind === 'cip' || e.kind === 'capitalization' && e.accountCode === 'DEMO-CIP').map(e => e.debit - e.credit))
+  return safeTotal(entries.filter(e => e.kind === 'cip' || ['capitalization', 'adjustment'].includes(e.kind) && e.accountCode === 'DEMO-CIP').map(e => e.debit - e.credit))
 }
 export async function validateCapitalization(db: MockDatabase, project: ConstructionProject) {
   const cap = project.capitalization

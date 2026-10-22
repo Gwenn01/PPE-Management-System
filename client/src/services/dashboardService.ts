@@ -102,17 +102,17 @@ export function createDashboardService(storage: MockDatabase = database) {
             scoped('registrations'), scoped('cipCosts'), scoped('accountingRecords'), scoped('reconciliations'),
           ])
           // Posted CIP account movements are authoritative; costs are not double-counted.
-          const cipBalance = sum(entries.filter((row) => row.kind === 'cip' || row.kind === 'capitalization' && row.accountCode === 'DEMO-CIP').map((row) => row.debit - row.credit))
-          const depreciation = sum(entries.filter((row) => row.kind === 'depreciation' || row.kind === 'disposal' && row.accountCode === 'DEMO-ACCUMULATED-DEPRECIATION').map((row) => row.credit - row.debit))
+          const cipBalance = sum(entries.filter((row) => row.kind === 'cip' || ['capitalization', 'adjustment'].includes(row.kind) && row.accountCode === 'DEMO-CIP').map((row) => row.debit - row.credit))
+          const depreciation = sum(entries.filter((row) => row.kind === 'depreciation' || ['disposal', 'adjustment'].includes(row.kind) && row.accountCode === 'DEMO-ACCUMULATED-DEPRECIATION').map((row) => row.credit - row.debit))
           metrics = [
             count('recognition', 'Assets awaiting recognition', registrations.filter((row) => row.workflowStatus === 'approved' && !row.recognizedAssetId).length, 'Approved registrations not linked to an asset'),
             currency('cip', 'CIP balance', cipBalance, 'Posted CIP debits minus credits'),
             currency('depreciation', 'Depreciation summary', depreciation, 'Posted depreciation only; not a forecast'),
-            count('reconciliation', 'Open reconciliations', reconciliations.filter((row) => isOpen(row.workflowStatus)).length, 'Draft, submitted, review or returned'),
+            count('reconciliation', 'Open reconciliations', reconciliations.filter((row) => row.reconciliationSession?.status === 'open' || !row.reconciliationSession && !row.reconciliationCorrection && isOpen(row.workflowStatus)).length, 'Draft, submitted, review or returned'),
           ]
           recordsTitle = 'Recent accounting work'
           records = [
-            ...reconciliations.map((row) => record(row.id, `Reconciliation ${row.periodStart} – ${row.periodEnd}`, 'Accounting reconciliation', row.workflowStatus, row.updatedAt)),
+            ...reconciliations.map((row) => record(row.id, `Reconciliation ${row.periodStart} – ${row.periodEnd}`, row.reconciliationCorrection ? 'Reconciliation correction' : 'Accounting reconciliation', row.reconciliationSession?.status ?? row.workflowStatus, row.updatedAt, '/dashboard/reconciliation')),
             ...costs.map((row) => record(row.id, row.description, 'CIP cost', row.workflowStatus, row.updatedAt)),
             ...entries.map((row) => record(row.id, `${row.kind} · ${row.accountCode}`, 'Posted accounting entry', 'posted', row.postingDate)),
           ]

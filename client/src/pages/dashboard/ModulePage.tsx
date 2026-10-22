@@ -1,3 +1,4 @@
+const ReconciliationModule = lazy(() => import('../../features/reconciliation/ReconciliationModule'))
 const LifecycleModule = lazy(() => import('../../features/lifecycle/LifecycleModule'))
 import { Construction } from 'lucide-react'
 import type { NavItem } from '../../config/navigation'
@@ -20,7 +21,8 @@ export default function ModulePage({ item }: { item: NavItem }) {
   if (item.path === 'physical-inventory' || item.path === 'asset-monitoring') return <Suspense fallback={<p role="status">Loading inventory...</p>}><InventoryModule /></Suspense>
   if (item.path === 'discrepancies') return <Suspense fallback={<p role="status">Loading investigations...</p>}><DiscrepancyModule /></Suspense>
   if (item.path === 'cip-costs') return <Suspense fallback={<p role="status">Loading CIP accounting...</p>}><CIPModule /></Suspense>
-  if (item.path === 'reports' || item.path === 'reconciliation') return <Suspense fallback={<p role="status">Loading accounting balances...</p>}><AccountingReportsModule reconciliation={item.path === 'reconciliation'} /></Suspense>
+  if (item.path === 'reconciliation') return <Suspense fallback={<p role="status">Loading reconciliation...</p>}><ReconciliationModule /></Suspense>
+  if (item.path === 'reports') return <Suspense fallback={<p role="status">Loading accounting balances...</p>}><AccountingReportsModule /></Suspense>
   if (item.path === 'budget' || item.path === 'accounting-documents') return <Suspense fallback={<p role="status">Loading document processing...</p>}><BudgetModule /></Suspense>
   if (item.path === 'construction-projects' || item.path === 'engineering') return <Suspense fallback={<p role="status">Loading construction projects...</p>}><ConstructionModule key={item.path} module={item.path} /></Suspense>
   if (item.path === 'recognition' || item.path === 'depreciation') return <Suspense fallback={<p role="status">Loading accounting...</p>}><AccountingModule key={item.path} module={item.path} /></Suspense>

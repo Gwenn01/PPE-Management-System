@@ -4,6 +4,7 @@ import type { BudgetHandoff, BudgetProcessing } from './budget.js'
 import type { CapitalizationPreparation, CIPAccounting, ReadyForUse } from './cip.js'
 import type { DiscrepancyInvestigation, InspectionHistory, SessionInventory } from './inventory.js'
 import type { LifecycleDetails } from './lifecycle.js'
+import type { ReconciliationCorrection, ReconciliationSession } from './reconciliation.js'
 import type { Role } from '../config/roles.js'
 
 export type MunicipalityId = 'botolan' | 'san_antonio'
@@ -50,7 +51,7 @@ export interface AssetCategory extends ScopedEntity {
 }
 
 export interface DemoSetting extends ScopedEntity {
-  key: 'fiscal_year' | 'demo_notice' | 'registration_document_rules' | 'lifecycle_policy'
+  key: 'fiscal_year' | 'demo_notice' | 'registration_document_rules' | 'lifecycle_policy' | 'reconciliation_policy'
   value: string | number | boolean
   isDemo: true
 }
@@ -246,6 +247,8 @@ export interface DepreciationPolicy extends ScopedEntity {
 }
 
 export interface Reconciliation extends WorkflowEntity {
+  reconciliationSession?: ReconciliationSession
+  reconciliationCorrection?: ReconciliationCorrection
   periodStart: ISODate
   periodEnd: ISODate
   propertyBalance: Money

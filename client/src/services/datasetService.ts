@@ -23,6 +23,18 @@ function sameData(a: EntityMap[EntityName], b: EntityMap[EntityName]): boolean {
 async function replaceScope(database: MockDatabase, actor: User, replacement: Dataset, transactionId: string, operation: 'import' | 'reset'): Promise<void> {
   const before = scopeDataset(await database.snapshot(), actor.municipalityId)
   if (operation === 'import') {
+    for (const old of before.reconciliations) if (!replacement.reconciliations.some(r => r.id === old.id && sameData(r, old))) throw new DataError('conflict', 'Reconciliation sessions, investigations and correction history cannot be rewritten by import.')
+    if (replacement.reconciliations.some(r => !before.reconciliations.some(old => old.id === r.id))) throw new DataError('validation', 'Create reconciliation sessions and corrections through Accounting Reconciliation.')
+    for (const old of before.approvals.filter(a => a.subjectType === 'reconciliation')) if (!replacement.approvals.some(a => a.id === old.id && sameData(a, old))) throw new DataError('conflict', 'Reconciliation decisions cannot be rewritten by import.')
+    for (const old of before.documents.filter(d => d.entityType === 'reconciliation')) if (!replacement.documents.some(d => d.id === old.id && sameData(d, old))) throw new DataError('conflict', 'Reconciliation evidence cannot be rewritten by import.')
+    if (replacement.accountingRecords.some(r => r.kind === 'adjustment' && !before.accountingRecords.some(old => old.id === r.id))) throw new DataError('validation', 'Accounting adjustments require approval; dataset import cannot fabricate postings.')
+    const reconciliationRows = before.reconciliations.flatMap(r => r.reconciliationSession?.rows ?? [])
+    const reconciliationAssets = new Set(reconciliationRows.filter(r => r.entityType === 'asset').map(r => r.entityId))
+    const reconciliationProjects = new Set(reconciliationRows.filter(r => r.entityType === 'project').map(r => r.entityId))
+    for (const name of ['assets', 'projects', 'cipCosts'] as const) {
+      const tracked = before[name].filter(r => name === 'assets' ? reconciliationAssets.has(r.id) : name === 'projects' ? reconciliationProjects.has(r.id) : 'projectId' in r && reconciliationProjects.has(r.projectId))
+      for (const old of tracked) if (!replacement[name].some(r => r.id === old.id && sameData(r, old))) throw new DataError('conflict', 'Reconciliation source records cannot be rewritten through dataset import.')
+    }
     for (const name of ['transfers', 'maintenance', 'disposals'] as const) {
       for (const old of before[name]) if (!replacement[name].some(r => r.id === old.id && sameData(r, old))) throw new DataError('conflict', 'Lifecycle requests and history cannot be rewritten by import.')
       if (replacement[name].some(r => !before[name].some(old => old.id === r.id))) throw new DataError('validation', 'Create lifecycle transactions through Lifecycle Management.')

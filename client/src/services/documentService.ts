@@ -16,6 +16,7 @@ import { appendBudgetEvent, editableBudgetStatuses } from './budgetValidation.js
 import type { ProjectDocumentRouting } from '../domain/models.js'
 import { accountingReceipts, assertCIPMutable } from './cipValidation.js'
 import type { LifecycleRequest } from './lifecycleValidation.js'
+import type { Reconciliation } from '../domain/models.js'
 
 export const documentLimits = { maxBytes: 5 * 1024 * 1024, mimeTypes: ['application/pdf', 'image/png', 'image/jpeg', 'text/plain'] } as const
 export interface DocumentUpload { fileName: string; file: Blob; entityType: Document['entityType']; entityId: string; documentType?: RegistrationDocumentType; projectDocumentType?: ProjectDocumentType; budgetRoutingId?: string }
@@ -56,6 +57,7 @@ export function createDocumentService(database: MockDatabase) {
           if (attached.some((doc) => doc?.documentType === input.documentType)) throw new DataError('duplicate', 'Replace an existing document of this type by removing it first.')
         }
         if (table === 'discrepancies' && (owner as InventoryDiscrepancy).investigation?.investigatorId !== actor.id) throw new DataError('forbidden', 'Record your investigation before attaching correction evidence.')
+        if (input.entityType === 'reconciliation' && (!(owner as Reconciliation).reconciliationCorrection || owner.requestedById !== actor.id)) throw new DataError('forbidden', 'Only the originating Accounting Officer can attach evidence to a reconciliation correction.')
         const lifecycle = ['transfer', 'maintenance', 'disposal'].includes(input.entityType) ? (owner as LifecycleRequest).lifecycle : undefined
         const maintenanceCompletion = input.entityType === 'maintenance' && lifecycle?.stage === 'in_progress' && owner.workflowStatus === 'approved'
         if (['transfer', 'maintenance', 'disposal'].includes(input.entityType) && (owner.requestedById !== actor.id || lifecycle && !['draft', 'returned', 'reviewed'].includes(lifecycle.stage) && !maintenanceCompletion)) throw new DataError('forbidden', 'Only the originating Property Officer can attach evidence to an editable lifecycle request or ongoing authorized maintenance.')

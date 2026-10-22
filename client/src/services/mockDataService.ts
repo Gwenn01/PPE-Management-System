@@ -1,3 +1,4 @@
+import { createReconciliationService } from './reconciliationService.js'
 import { createLifecycleService } from './lifecycleService.js'
 import { createInventoryService } from './inventoryService.js'
 import { createAccountingService } from './accountingService.js'
@@ -27,6 +28,7 @@ export function createMockDataServices(storage: MockDatabase = database) {
     entities: createEntityServices(storage),
     inventory: createInventoryService(storage),
     lifecycle: createLifecycleService(storage),
+    reconciliation: createReconciliationService(storage),
     construction: createConstructionService(storage),
     budget: createBudgetService(storage),
     cip: createCIPService(storage),

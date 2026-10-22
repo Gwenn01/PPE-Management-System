@@ -50,7 +50,7 @@ function editableWorkflow(record: EntityMap[WritableEntity], actor: User, name: 
 }
 
 export async function applyCreate<K extends WritableEntity>(database: MockDatabase, context: RequestContext, name: K, input: CreateInput<K>, transactionId: string): Promise<EntityMap[K]> {
-  if (['inventorySessions', 'inventoryChecks', 'discrepancies', 'transfers', 'maintenance', 'disposals'].includes(name)) throw new DataError('forbidden', 'Use the controlled Inventory or Lifecycle Management workflow to preserve authorization and history.')
+  if (['inventorySessions', 'inventoryChecks', 'discrepancies', 'transfers', 'maintenance', 'disposals', 'reconciliations'].includes(name)) throw new DataError('forbidden', 'Use the controlled Inventory or Lifecycle Management workflow to preserve authorization and history.')
   if (name === 'cipCosts' && ('accounting' in input || 'projectId' in input && (await database.entity('projects').get(String(input.projectId)))?.construction)) throw new DataError('forbidden', 'Record tracked construction costs through CIP Accounting.')
   if (name === 'projects') throw new DataError('forbidden', 'Register projects through the construction workflow.')
   if (name === 'documentRouting' && 'projectId' in input && (await database.entity('projects').get(String(input.projectId)))?.construction) throw new DataError('forbidden', 'Forward documents through Engineering processing.')
@@ -65,7 +65,7 @@ export async function applyCreate<K extends WritableEntity>(database: MockDataba
 }
 
 export async function applyUpdate<K extends WritableEntity>(database: MockDatabase, context: RequestContext, name: K, id: string, version: number, changes: Partial<CreateInput<K>>, transactionId: string): Promise<EntityMap[K]> {
-  if (['inventorySessions', 'inventoryChecks', 'discrepancies', 'transfers', 'maintenance', 'disposals'].includes(name)) throw new DataError('forbidden', 'Use the controlled Inventory or Lifecycle Management workflow for changes.')
+  if (['inventorySessions', 'inventoryChecks', 'discrepancies', 'transfers', 'maintenance', 'disposals', 'reconciliations'].includes(name)) throw new DataError('forbidden', 'Use the controlled Inventory or Lifecycle Management workflow for changes.')
   if (!writableSet.has(name)) throw new DataError('forbidden', 'This entity is not directly editable.')
   const actor = await authorizeEntity(database, context, name, 'update')
   const old = await scopedRecord(database, actor, name, recordId.parse(id))
@@ -129,7 +129,7 @@ async function synchronizeApproval(database: MockDatabase, actor: User, name: Wo
 }
 
 async function applyWorkflow<K extends WorkflowEntityName>(database: MockDatabase, context: RequestContext, name: K, id: string, version: number, next: WorkflowStatus, reason: string, transactionId: string): Promise<EntityMap[K]> {
-  if (['inventorySessions', 'discrepancies', 'transfers', 'maintenance', 'disposals'].includes(name)) throw new DataError('forbidden', 'Submit through the controlled Inventory or Lifecycle Management workflow.')
+  if (['inventorySessions', 'discrepancies', 'transfers', 'maintenance', 'disposals', 'reconciliations'].includes(name)) throw new DataError('forbidden', 'Submit through the controlled Inventory or Lifecycle Management workflow.')
   if (name === 'cipCosts' && (await database.entity('cipCosts').get(id))?.accounting) throw new DataError('forbidden', 'Tracked CIP costs require qualifying-cost review.')
   if (name === 'projects' && (await database.entity('projects').get(id))?.construction) throw new DataError('forbidden', 'Construction processing does not submit capitalization approvals.')
   if (name === 'documentRouting') {

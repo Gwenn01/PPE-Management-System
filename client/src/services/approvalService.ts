@@ -1,7 +1,8 @@
+import { postReconciliationCorrection } from './reconciliationPosting.js'
 import { validateLifecycleAuthorization, type LifecycleRequest } from './lifecycleValidation.js'
 import { lifecycleTables, type LifecycleKind } from '../domain/lifecycle.js'
 import { z } from 'zod'
-import type { ApprovalHistoryEntry, ApprovalRequest, ApprovalSubject, Asset, AssetRegistration, ConstructionProject, Document, InventoryDiscrepancy, WorkflowStatus } from '../domain/models.js'
+import type { ApprovalHistoryEntry, ApprovalRequest, ApprovalSubject, Asset, AssetRegistration, ConstructionProject, Document, InventoryDiscrepancy, Reconciliation, WorkflowStatus } from '../domain/models.js'
 import { validateInventoryCorrection } from './inventoryValidation.js'
 import { postCapitalization } from './capitalizationPosting.js'
 import { approvalResources, approvalTransitionRules } from '../domain/workflow.js'
@@ -105,6 +106,11 @@ export function createApprovalManagementService(db: MockDatabase = defaultDataba
       const at = new Date().toISOString()
       let updatedTarget = parseEntity(table, { ...target, workflowStatus: status, version: target.version + 1, updatedAt: at })
       let registryAsset: Asset | null = null
+      if (old.subjectType === 'reconciliation') {
+        const request = target as Reconciliation
+        if (status === 'approved') updatedTarget = await postReconciliationCorrection(db, request, actor, at, transactionId)
+        else if (request.reconciliationCorrection) updatedTarget = parseEntity('reconciliations', { ...updatedTarget, reconciliationCorrection: { ...request.reconciliationCorrection, history: [...request.reconciliationCorrection.history, { id: crypto.randomUUID(), actorId: actor.id, occurredAt: at, action: 'approval_' + parsed.decision, note: reason || 'Reconciliation correction under review.' }] } })
+      }
       if (['transfer', 'maintenance', 'disposal'].includes(old.subjectType)) {
         const kind = old.subjectType as LifecycleKind, request = target as LifecycleRequest
         if (status === 'approved') {
@@ -174,9 +180,9 @@ export function createApprovalManagementService(db: MockDatabase = defaultDataba
       const notification = parseEntity('notifications', {
         id: crypto.randomUUID(), municipalityId: actor.municipalityId, version: 1, createdAt: at, updatedAt: at,
         recipientId: old.requestedById, title: `${approvalTypeLabels[old.subjectType]} ${status.replaceAll('_', ' ')}`,
-        message: reason || (status === 'approved' && ['transfer', 'maintenance', 'disposal'].includes(old.subjectType) ? 'Lifecycle request authorized. Property must explicitly complete the authorized transaction before official changes are applied.' : status === 'approved' && old.subjectType === 'correction' ? 'The authorized inventory correction was applied and the discrepancy resolved.' : status === 'approved' ? old.subjectType === 'capitalization' && (target as ConstructionProject).capitalization ? 'Approved qualifying CIP transferred to recognized PPE. Review its saved depreciation requirements.' : 'Your request was approved. Accounting recognition, if applicable, is a separate step.' : 'Your request is now under review.'),
+        message: reason || (old.subjectType === 'reconciliation' ? (status === 'approved' ? 'Approved reconciliation correction applied atomically. Review the refreshed session comparison.' : status === 'rejected' || status === 'returned' ? 'Correction requires further Accounting review. Its discrepancy remains open; rejected proposals can be replaced with a new justified request.' : 'Correction is under review.') : status === 'approved' && ['transfer', 'maintenance', 'disposal'].includes(old.subjectType) ? 'Lifecycle request authorized. Property must explicitly complete the authorized transaction before official changes are applied.' : status === 'approved' && old.subjectType === 'correction' ? 'The authorized inventory correction was applied and the discrepancy resolved.' : status === 'approved' ? old.subjectType === 'capitalization' && (target as ConstructionProject).capitalization ? 'Approved qualifying CIP transferred to recognized PPE. Review its saved depreciation requirements.' : 'Your request was approved. Accounting recognition, if applicable, is a separate step.' : 'Your request is now under review.'),
         severity: status === 'approved' ? 'success' : status === 'rejected' ? 'error' : status === 'returned' ? 'warning' : 'info',
-        href: ['transfer', 'maintenance', 'disposal'].includes(old.subjectType) ? '/dashboard/' + ({ transfer: 'transfers', maintenance: 'maintenance', disposal: 'disposal' } as Record<string, string>)[old.subjectType] : old.subjectType === 'correction' ? '/dashboard/discrepancies' : old.subjectType === 'registration' ? '/dashboard/asset-registration' : old.subjectType === 'capitalization' && (target as ConstructionProject).capitalization ? '/dashboard/cip-costs' : '/dashboard', readAt: null,
+        href: old.subjectType === 'reconciliation' ? '/dashboard/reconciliation' : ['transfer', 'maintenance', 'disposal'].includes(old.subjectType) ? '/dashboard/' + ({ transfer: 'transfers', maintenance: 'maintenance', disposal: 'disposal' } as Record<string, string>)[old.subjectType] : old.subjectType === 'correction' ? '/dashboard/discrepancies' : old.subjectType === 'registration' ? '/dashboard/asset-registration' : old.subjectType === 'capitalization' && (target as ConstructionProject).capitalization ? '/dashboard/cip-costs' : '/dashboard', readAt: null,
       })
       await db.entity('notifications').add(notification)
       await writeAudit(db, actor, transactionId, 'notifications', null, notification, 'approval_notice')

@@ -11,6 +11,7 @@ import { datasetSchema, entityNames } from './schemas.js'
 import { upgradeLegacyDataset } from './usernames.js'
 import { inspectionFlags } from '../../domain/inventory.js'
 import { lifecyclePolicySchema } from '../../domain/lifecycle.js'
+import { balancesEqual, difference, reconciliationPolicySchema } from '../../domain/reconciliation.js'
 
 export const subjectTables = { registration: 'registrations', capitalization: 'projects', correction: 'discrepancies', transfer: 'transfers', maintenance: 'maintenance', disposal: 'disposals', reconciliation: 'reconciliations', project: 'projects', inventory: 'inventorySessions', cip_cost: 'cipCosts' } as const
 
@@ -249,6 +250,42 @@ export function validateDataset(input: unknown): Dataset {
     if (row.periodEnd < row.periodStart) throw new DataError('validation', 'Invalid reconciliation period.')
     for (const difference of row.differences) ref('assets', difference.assetId, row.municipalityId)
     for (const id of row.adjustmentRecordIds) ref('accountingRecords', id, row.municipalityId)
+    if (row.reconciliationSession && row.reconciliationCorrection) throw new DataError('validation', 'A reconciliation record cannot be both a session and a correction.')
+    if (row.reconciliationSession) {
+      const s = row.reconciliationSession
+      if (row.workflowStatus !== 'draft' || (s.status === 'completed') !== (s.completedAt !== null) || s.status === 'completed' && s.rows.some(r => r.status === 'discrepancy')) throw new DataError('validation', 'Invalid reconciliation session completion or authorization status.')
+      ref('assetCategories', s.categoryId, row.municipalityId)
+      const keys = new Set<string>()
+      for (const comparison of s.rows) {
+        ref(comparison.entityType === 'asset' ? 'assets' : 'projects', comparison.entityId, row.municipalityId)
+        if (comparison.key !== `${comparison.entityType}:${comparison.entityId}` || keys.has(comparison.key)) throw new DataError('validation', 'Invalid or duplicate reconciliation comparison key.')
+        keys.add(comparison.key)
+        if (JSON.stringify(comparison.difference) !== JSON.stringify(difference(comparison.reference, comparison.accounting))) throw new DataError('validation', 'Reconciliation differences must be calculated from the saved balances.')
+        const matched = !!comparison.accounting && balancesEqual(comparison.reference, comparison.accounting)
+        if ((comparison.status === 'matched') !== matched || comparison.status === 'accounted_for' && (!s.policy.allowDocumentedExceptions || !comparison.accounting || !s.exceptions.some(e => e.rowKey === comparison.key && balancesEqual(e.reference, comparison.reference) && balancesEqual(e.accounting, comparison.accounting!)))) throw new DataError('validation', 'Reconciliation status must agree with saved balances or an authorized exception.')
+      }
+      if (s.rows.reduce((sum, r) => sum + BigInt(r.reference.cost), 0n) !== BigInt(row.propertyBalance) || s.rows.reduce((sum, r) => sum + BigInt(r.accounting?.cost ?? 0), 0n) !== BigInt(row.accountingBalance)) throw new DataError('validation', 'Reconciliation totals must be recalculated from stored comparison rows.')
+      for (const e of s.history) ref('users', e.actorId, row.municipalityId)
+      for (const capture of s.captures) ref('users', capture.actorId, row.municipalityId)
+      for (const imported of s.importHistory) {
+        ref('users', imported.actorId, row.municipalityId)
+        if (imported.dataset.municipalityId !== row.municipalityId || imported.dataset.periodStart !== row.periodStart || imported.dataset.periodEnd !== row.periodEnd) throw new DataError('validation', 'Imported reconciliation balances must retain the session municipality and period.')
+      }
+      for (const reference of [...s.overrides, ...s.exceptions]) {
+        const correction = ref('reconciliations', reference.correctionId, row.municipalityId)!
+        if (correction.reconciliationCorrection?.sessionId !== row.id || !correction.reconciliationCorrection.appliedAt || correction.workflowStatus !== 'approved') throw new DataError('validation', 'Imported overrides and exceptions require an applied approved correction.')
+      }
+    }
+    if (row.reconciliationCorrection) {
+      const c = row.reconciliationCorrection, parent = ref('reconciliations', c.sessionId, row.municipalityId)!
+      if (!parent.reconciliationSession || parent.requestedById !== row.requestedById || parent.periodStart !== row.periodStart || parent.periodEnd !== row.periodEnd || (row.workflowStatus === 'approved') !== (c.appliedAt !== null)) throw new DataError('validation', 'Correction parent, accounting period and applied decision must agree.')
+      for (const e of c.history) ref('users', e.actorId, row.municipalityId)
+      if (c.supersedesId) { const prior = ref('reconciliations', c.supersedesId, row.municipalityId)!; if (prior.workflowStatus !== 'rejected' || prior.reconciliationCorrection?.sessionId !== parent.id) throw new DataError('validation', 'A replacement must retain its rejected originating correction.') }
+      if (c.appliedAt && c.mode === 'adjust_local_ledger') {
+        const postings = row.adjustmentRecordIds.map(id => ref('accountingRecords', id, row.municipalityId)!)
+        if (!postings.length || postings.some(e => e.kind !== 'adjustment' || e.sourceId !== row.id) || postings.reduce((sum, e) => sum + BigInt(e.debit) - BigInt(e.credit), 0n) !== 0n) throw new DataError('validation', 'Approved ledger corrections require a balanced adjustment journal.')
+      }
+    }
   }
   const openApprovals = new Set<string>()
   for (const row of data.approvals) {
@@ -275,7 +312,7 @@ export function validateDataset(input: unknown): Dataset {
   for (const name of ['registrations', 'discrepancies', 'transfers', 'maintenance', 'disposals', 'reconciliations'] as const) for (const row of data[name]) {
     const meta = 'lifecycle' in row ? row.lifecycle : undefined
     const policyAuthorized = meta && meta.approvalRequired === false && meta.authorization?.source === 'configured_policy' && name !== 'disposals' && row.workflowStatus === 'approved'
-    const lifecycleCancelled = ['transfers', 'maintenance', 'disposals'].includes(name) && row.workflowStatus === 'cancelled'
+    const lifecycleCancelled = (['transfers', 'maintenance', 'disposals'].includes(name) || name === 'reconciliations' && 'reconciliationCorrection' in row && row.reconciliationCorrection) && row.workflowStatus === 'cancelled'
     if (row.workflowStatus !== 'draft' && !lifecycleCancelled && !policyAuthorized && !data.approvals.some((approval) => approval.subjectId === row.id)) throw new DataError('validation', 'A submitted or decided request requires its approval record.')
     if (meta) {
       if (policyAuthorized && (!meta.policy || meta.authorization!.actorId !== row.requestedById || name === 'transfers' && meta.policy.transferRequiresApproval || name === 'maintenance' && (meta.policy.maintenanceApproval === 'always' || meta.policy.maintenanceApproval === 'above_threshold' && 'estimatedCost' in row && row.estimatedCost >= meta.policy.maintenanceThreshold))) throw new DataError('validation', 'The saved demonstration policy must explicitly authorize approval-free processing.')
@@ -296,6 +333,7 @@ export function validateDataset(input: unknown): Dataset {
   for (const row of data.notifications) ref('users', row.recipientId, row.municipalityId)
   for (const row of data.auditLogs) ref('users', row.actorId, row.municipalityId)
   for (const row of data.settings) {
+    if (row.key === 'reconciliation_policy') { try { reconciliationPolicySchema.parse(JSON.parse(String(row.value))) } catch { throw new DataError('validation', 'Invalid reconciliation demonstration policy.') } }
     if (row.key === 'lifecycle_policy') { try { lifecyclePolicySchema.parse(JSON.parse(String(row.value))) } catch { throw new DataError('validation', 'Invalid lifecycle demonstration policy.') } }
     if (row.key === 'fiscal_year' && (typeof row.value !== 'number' || row.value < 1900 || row.value > 2200)) throw new DataError('validation', 'Demo fiscal year must be an integer between 1900 and 2200.')
     if (row.key === 'registration_document_rules') {

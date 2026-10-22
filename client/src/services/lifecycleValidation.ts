@@ -1,3 +1,4 @@
+import { ppeMovement, depreciationMovement } from './accountingBalances.js'
 import { defaultLifecyclePolicy, lifecycleTables, type DisposalImpact, type LifecycleKind } from '../domain/lifecycle.js'
 import type { AssetTransfer, DisposalRequest, MaintenanceRequest } from '../domain/models.js'
 import type { MockDatabase } from '../mock/database.js'
@@ -23,8 +24,8 @@ export async function disposalImpact(db: MockDatabase, row: DisposalRequest): Pr
   const entries = (await db.entity('accountingRecords').where('assetId').equals(row.assetId).toArray()).sort((a, b) => a.id.localeCompare(b.id))
   if (entries.some(e => e.municipalityId !== row.municipalityId || e.kind === 'disposal')) throw new DataError('conflict', 'Disposal posting already exists or the asset ledger is inconsistent.')
   if (entries.some(e => e.postingDate.slice(0, 10) > row.lifecycle!.proposedDate)) throw new DataError('validation', 'The proposed disposal date cannot precede an existing asset accounting posting.')
-  const ppe = entries.filter(e => e.kind === 'capitalization' && e.accountCode === 'DEMO-PPE' || e.kind === 'recognition' && !['expense', 'semi_expendable'].includes(e.recognitionDetails?.treatment ?? e.accountCode))
-  const cost = safeTotal(ppe.map(e => e.debit - e.credit)), accumulatedDepreciation = safeTotal(entries.filter(e => e.kind === 'depreciation').map(e => e.credit - e.debit))
+  const ppe = entries.filter(ppeMovement)
+  const cost = safeTotal(ppe.map(e => e.debit - e.credit)), accumulatedDepreciation = safeTotal(entries.filter(depreciationMovement).map(e => e.credit - e.debit))
   if (cost < 0 || accumulatedDepreciation < 0 || accumulatedDepreciation > cost) throw new DataError('validation', 'Resolve invalid PPE or excessive posted depreciation before disposal review.')
   return { treatment: ppe.length ? 'ppe_derecognition' : 'non_ppe_retirement', cost, accumulatedDepreciation, carryingValue: cost - accumulatedDepreciation, proceeds: row.proceeds ?? 0, ledgerSnapshot: JSON.stringify(entries) }
 }
