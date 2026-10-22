@@ -65,10 +65,10 @@ export function validateDataset(input: unknown): Dataset {
   }
   for (const row of data.users) ref('departments', row.departmentId, row.municipalityId)
   for (const row of data.assets) {
-    const registration = ref('registrations', row.registrationId, row.municipalityId)!
+    const registration = ref('registrations', row.registrationId, row.municipalityId)
     ref('assetCategories', row.category, row.municipalityId)
     ref('projects', row.constructionProjectId, row.municipalityId)
-    if (registration.recognizedAssetId !== row.id || registration.workflowStatus !== 'approved') throw new DataError('validation', 'Assets require an approved, linked registration.')
+    if (registration ? registration.recognizedAssetId !== row.id || registration.workflowStatus !== 'approved' : !row.constructionProjectId || !data.projects.some(p => p.id === row.constructionProjectId && p.capitalizedAssetId === row.id && p.capitalization && p.workflowStatus === 'approved')) throw new DataError('validation', 'Assets require approved registration or approved construction capitalization provenance.')
   }
   for (const row of data.registrations) {
     ref('assetCategories', row.category, row.municipalityId)
@@ -76,6 +76,23 @@ export function validateDataset(input: unknown): Dataset {
     if (asset && asset.registrationId !== row.id) throw new DataError('validation', 'Registration/asset links must be reciprocal.')
   }
   for (const row of data.projects) {
+    if (row.readyForUse) {
+      const ready = row.readyForUse
+      ref('users', ready.confirmedById, row.municipalityId)
+      if (!row.completionDate || ready.date < row.completionDate.slice(0, 10)) throw new DataError('validation', 'Readiness must follow documented completion.')
+      for (const id of ready.documentIds) { const doc = ref('documents', id, row.municipalityId); if (!doc || doc.entityId !== row.id || !row.documentIds.includes(id)) throw new DataError('validation', 'Intended-use evidence must belong to the project.') }
+    }
+    if (row.capitalization) {
+      const cap = row.capitalization
+      ref('users', cap.requestedById, row.municipalityId); ref('assetCategories', cap.category, row.municipalityId); ref('depreciationPolicies', cap.policyId, row.municipalityId)
+      for (const id of cap.costIds) if (ref('cipCosts', id, row.municipalityId)?.projectId !== row.id) throw new DataError('validation', 'Capitalization costs must belong to this project.')
+      if (!row.readyForUse || cap.depreciation.cost !== cap.total) throw new DataError('validation', 'Capitalization requires intended-use readiness and consistent accounting values.')
+      if (row.projectStatus === 'capitalized') {
+        const transfers = data.accountingRecords.filter(e => e.projectId === row.id && e.kind === 'capitalization')
+        if (transfers.length !== 2 || !transfers.some(e => e.accountCode === 'DEMO-CIP' && e.credit === cap.total && e.debit === 0) || !transfers.some(e => e.accountCode === 'DEMO-PPE' && e.debit === cap.total && e.credit === 0 && e.assetId === row.capitalizedAssetId)) throw new DataError('validation', 'Capitalization requires one balanced CIP-to-PPE transfer pair.')
+        if (cap.costIds.some(id => data.cipCosts.find(c => c.id === id)?.accounting?.status !== 'capitalized')) throw new DataError('validation', 'Capitalized costs must be marked transferred exactly once.')
+      }
+    }
     if (row.construction) {
       const c = row.construction
       const engineer = ref('users', c.engineeringUserId, row.municipalityId)
@@ -169,10 +186,10 @@ export function validateDataset(input: unknown): Dataset {
     if (row.recognitionDetails) {
       const details = row.recognitionDetails
       depreciationSchedule(details, details.startDate)
-      if (row.kind !== 'recognition' || details.cost !== row.debit || row.credit !== 0 || details.startDate !== row.postingDate || row.accountCode !== details.treatment) throw new DataError('validation', 'Recognition details and authorized accounting values disagree.')
+      if (!['recognition', 'capitalization'].includes(row.kind) || details.cost !== row.debit || row.credit !== 0 || details.startDate !== row.postingDate || (row.kind === 'recognition' ? row.accountCode !== details.treatment : row.accountCode !== 'DEMO-PPE')) throw new DataError('validation', 'Recognition details and authorized accounting values disagree.')
       const asset = ref('assets', row.assetId, row.municipalityId)
-      if (!asset || asset.acquisitionCost !== details.cost || asset.registrationId !== row.sourceId || asset.recognitionStatus !== 'recognized') throw new DataError('validation', 'Recognition requires matching asset accounting status and acquisition cost.')
-      if (data.accountingRecords.filter(r => r.assetId === row.assetId && r.kind === 'recognition').length !== 1) throw new DataError('validation', 'Duplicate asset recognition.')
+      if (!asset || asset.acquisitionCost !== details.cost || (row.kind === 'recognition' ? asset.registrationId !== row.sourceId : asset.constructionProjectId !== row.sourceId) || asset.recognitionStatus !== 'recognized') throw new DataError('validation', 'Recognition requires matching asset accounting status and acquisition cost.')
+      if (data.accountingRecords.filter(r => r.assetId === row.assetId && !!r.recognitionDetails).length !== 1) throw new DataError('validation', 'Duplicate asset recognition.')
     }
     ref('users', row.postedById, row.municipalityId)
     const policy = ref('depreciationPolicies', row.policyId, row.municipalityId)
@@ -185,6 +202,15 @@ export function validateDataset(input: unknown): Dataset {
   for (const row of data.cipCosts) if (row.accountingRecordId) {
     const posting = ref('accountingRecords', row.accountingRecordId, row.municipalityId)!
     if (posting.kind !== 'cip' || posting.sourceId !== row.id || posting.projectId !== row.projectId || posting.debit !== row.amount) throw new DataError('validation', 'CIP cost and accounting entry do not agree.')
+  }
+  for (const row of data.cipCosts) if (row.accounting) {
+    const a = row.accounting, project = ref('projects', row.projectId, row.municipalityId)!
+    const supporting = ref('documents', a.supportingDocumentId, row.municipalityId), packet = ref('documentRouting', a.budgetPacketId, row.municipalityId)
+    if (!project.construction || !supporting || supporting.entityId !== project.id || supporting.projectDocumentType !== 'cip_support' || packet?.projectId !== project.id || packet.toRole !== 'accounting_officer' || packet.workflowStatus !== 'approved') throw new DataError('validation', 'CIP expenditure requires project support and an acknowledged Accounting handoff.')
+    ref('users', a.reviewedById, row.municipalityId)
+    if (['approved', 'capitalized'].includes(a.status) && (!row.accountingRecordId || !a.reviewedById || !a.reviewedAt)) throw new DataError('validation', 'Qualifying costs require review and an authorized CIP posting.')
+    if (a.reversalRecordId) { const reversal = ref('accountingRecords', a.reversalRecordId, row.municipalityId); if (!reversal || reversal.kind !== 'cip' || reversal.sourceId !== row.id || reversal.credit !== row.amount || reversal.debit !== 0 || a.status !== 'excluded') throw new DataError('validation', 'Excluded posted CIP costs require a matching reversing credit.') }
+    if (a.status === 'capitalized' && (!a.transferredAt || project.projectStatus !== 'capitalized' || !project.capitalization?.costIds.includes(row.id))) throw new DataError('validation', 'Transferred costs require approved project capitalization.')
   }
   for (const row of data.disposals) if (row.accountingRecordId) {
     const posting = ref('accountingRecords', row.accountingRecordId, row.municipalityId)!
@@ -200,7 +226,7 @@ export function validateDataset(input: unknown): Dataset {
     const target = ref(subjectTables[row.subjectType], row.subjectId, row.municipalityId)!
     if (row.assignedRole !== 'approving_officer') throw new DataError('validation', 'Business approvals must route to an Approving Officer.')
     if (row.workflowStatus !== target.workflowStatus) throw new DataError('validation', 'Approval and subject workflow statuses must agree.')
-    if (row.requestedById !== target.requestedById) throw new DataError('validation', 'Approval and subject requester must agree.')
+    if (row.requestedById !== (row.subjectType === 'capitalization' && 'capitalization' in target && target.capitalization ? target.capitalization.requestedById : target.requestedById)) throw new DataError('validation', 'Approval and subject requester must agree.')
     const key = `${row.subjectType}:${row.subjectId}`
     if (openApprovals.has(key)) throw new DataError('duplicate', 'Duplicate approval for this request.')
     openApprovals.add(key)

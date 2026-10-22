@@ -1,6 +1,8 @@
 import { createAccountingService } from './accountingService.js'
 import { createConstructionService } from './constructionService.js'
 import { createBudgetService } from './budgetService.js'
+import { createCIPService } from './cipService.js'
+import { createAccountingReportService } from './accountingReportService.js'
 import { createRegistrationService } from './registrationService.js'
 import { createApprovalManagementService } from './approvalService.js'
 import { createAdministratorService } from './administratorService.js'
@@ -23,6 +25,8 @@ export function createMockDataServices(storage: MockDatabase = database) {
     entities: createEntityServices(storage),
     construction: createConstructionService(storage),
     budget: createBudgetService(storage),
+    cip: createCIPService(storage),
+    accountingReports: createAccountingReportService(storage),
     administration: createAdministratorService(storage),
     registration: createRegistrationService(storage), accounting: createAccountingService(storage),
     approvals: createApprovalManagementService(storage),

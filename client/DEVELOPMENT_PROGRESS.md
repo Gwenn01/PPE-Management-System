@@ -1,6 +1,6 @@
 # PPE Management System — Development Progress
 
-Current status: Phase 10 Budget Office, voucher processing and Accounting/Treasury document routing are implemented. Tests, typecheck, production build and lint have run; earlier verification sections remain historical.
+Current status: Phase 11 CIP accounting and construction-to-PPE capitalization are implemented. Dependency-backed tests, typecheck, production build and lint have run; earlier sections retain their historical verification scope.
 
 ## Phase 00 — Project audit and preparation
 
@@ -571,3 +571,44 @@ Status: implemented against the supplied Diagram 3 routing requirements, extendi
 - PASS: npm run typecheck and npm run build (production Vite bundle).
 - PASS: npm run lint with zero errors and the same four existing hook-dependency warnings. Existing Vite bundle-size/mixed-import advisories remain.
 - Browser connection availability checked using the Browser skill: no connected browsers were available. Visual, click and keyboard QA remain unverified; no unsupported browser fallback was used.
+
+
+## Phase 11 - CIP Accounting and Capitalization (2026-10-22)
+
+Status: implemented using the existing tracked construction, Engineering, Budget/Accounting receipt and central Approval workflows. All accounting remains a frontend-only, local-browser demonstration.
+
+### Construction-to-PPE workflow
+
+1. Engineering and Budget process a tracked construction project using Phases 09-10. Accounting must acknowledge its reviewed Budget packet before recording expenditures; an unreceived or unconfirmed Trust Fund packet is not eligible.
+2. Accounting opens CIP Costs to review project/processed Budget files, upload classified CIP support and record project ID, unique municipal cost reference, description, category, integer-centavo amount, transaction date, supporting file and acknowledged Budget packet. The originating actor is stored as requestedById. New costs begin pending qualifying-cost review and do not affect posted CIP.
+3. Accounting explicitly approves a qualifying cost with a rationale, creating its authorized CIP debit; excluded pending costs never enter CIP. An approved, untransferred cost can be excluded with a matching reversing CIP credit and retained review/audit history. Posted amounts are never overwritten. Active expenditure totals are bounded by the project budget and processed packet voucher as clearly labeled demo limits.
+4. Property monitors construction, uploads completion and acceptance evidence, records physical completion and separately confirms the date the project is ready for intended use. Confirmation requires a completed project and a date between actual completion and today. Returned capitalization evidence can be replaced append-only and readiness reconfirmed.
+5. Accounting verifies completion/readiness, reviews all costs, selects all approved untransferred qualifying costs, assigns the future PPE property number/category/custodian, reviews the current effective demonstration policy and saves a capitalization preparation. Pending costs must be approved or excluded first. The approved cost sum must equal available posted CIP exactly. Completion files, processed Budget/Treasury evidence, cost data and depreciation assumptions are retained in the request.
+6. Accounting submits to the existing Approving Officer capitalization queue. The project retains its originating Property Officer; the capitalization request separately records its Accounting preparer. Submission snapshots preserve project, qualifying costs and evidence. Active requests lock expenditure and evidence changes until returned. The central approval service preserves role/municipality/session checks, stale-version rejection and self-approval prevention.
+7. Approving Officers can inspect the saved qualifying-cost table, qualification rationales, completion/readiness information, supporting files and depreciation requirements, then review, approve, return or reject. Returned requests can be corrected and resubmitted with earlier snapshots intact. Rejected requests remain final and preserve CIP; neither rejection nor return creates PPE or transfers balances.
+8. Approval revalidates completion evidence, readiness, qualifying costs and their postings, local files, the current policy version, source balance and duplicate property/project links. It then creates one recognized in-service construction asset, one PPE debit and one matching CIP credit, marks selected costs capitalized, updates project status/link, writes timeline/audit history and notifies the receiving offices in the same database transaction. A failure rolls back the asset, both balances, costs and decision together. Duplicate capitalization is rejected.
+
+### Screens and downstream integration
+
+- CIP Costs now renders a full accounting module with eligible-project queue, accumulated/remaining balances, expenditure registration, approved/excluded cost review, preparation/submission controls, completion/financial evidence previews, decision snapshots and CIP/PPE posting history.
+- Construction Projects includes intended-use confirmation, capitalization status, amount/property number and shared decision timeline. Physical construction completion continues to be separate from capitalization approval.
+- Approval Management displays prepared capitalization details and explains its authorized atomic accounting effect. Legacy unprepared capitalization requests cannot be approved without Accounting preparation and completion evidence.
+- Construction-generated assets use approved project capitalization provenance and a null registrationId; no fictitious asset-registration approval is fabricated. Existing registration-origin assets retain their approved registration links. Optional project/cost fields and the nullable construction provenance preserve existing IndexedDB version 3 data without reseeding or adding tables/roles/grants. Legacy untracked project/cost seeds remain historical report inputs rather than receiving invented completion or accounting evidence.
+- PPE Master List and the existing Asset Registry read the newly created Asset. The CIP Report subtracts the authorized capitalization credit from approved net CIP costs. Accounting dashboard CIP totals now use the same transfer-aware calculation.
+- Reports now provide read-only PPE Master List, CIP Report, saved-policy depreciation summaries and accounting reconciliation source balances, including an as-of calendar date. Reconciliation compares recognized registry PPE against posted PPE and separately displays remaining CIP; it does not fabricate reconciliation adjustment postings or implement a later correction workflow.
+- The existing Depreciation module reads the saved recognition details on the PPE capitalization debit. Accounting reviews useful life, residual value and depreciable/non-depreciable treatment in preparation and can inspect the resulting full schedule after approval. Policy assumptions remain configurable and explicitly unverified. Depreciation begins no earlier than the capitalization approval date under the saved month convention. Unfinished CIP has no asset depreciation schedule, and viewing historical forecasts never authorizes depreciation postings.
+
+### Validation and retention
+
+- All monetary inputs use safe integer centavos; sums use BigInt intermediates with explicit safe-range checks in CIP/report projections. Positive amount, valid date, unique cost/property references, active/local associations, project budget/voucher limits and meaningful review notes are enforced by services.
+- Eligibility requires an actual acknowledged Accounting handoff with completed Budget processing, including confirmed Treasury processing for Trust Fund packets. Supporting documents must belong to the same project and have matching local Blobs. Required evidence and current policy assumptions are rechecked at submission and approval, not trusted from the screen alone.
+- Generic cost/project writers and workflow APIs cannot bypass managed CIP approval/posting rules. Municipality and project assignment checks apply to feature reads, supporting-file access, cost commands and dashboard activity. Audited municipal reports use their existing separate read grants. JSON import cannot rewrite managed CIP costs, construction history, authorized postings or capitalization snapshots; explicit confirmed demo reset retains its existing audit behavior.
+- Costs transferred to PPE cannot be excluded/reposted. Pending, excluded and reversed amounts cannot transfer. Exclusion credits, original debits, submission snapshots and approval histories remain available for audit and returned-request correction.
+
+### Verification
+
+- PASS: npm test, all 99 tests (91 regressions plus eight CIP scenario groups).
+- New coverage: pending versus posted CIP, incomplete construction and missing intended-use confirmation, completed capitalization, rejected decisions retaining CIP, returned requests and corrective exclusion credits, immutable resubmission snapshots, non-depreciable PPE, read-only historical reports, depreciation start/salvage behavior, missing local evidence, policy changes during approval, unsafe/invalid amounts, duplicate references, stale/duplicate capitalization, rollback after partial asset/ledger work, active-role and municipality/assignment isolation, revoked approval grants, generic API/import protections, refresh persistence and PPE/CIP/depreciation/reconciliation integration.
+- PASS: npm run typecheck and npm run build (production TypeScript/Vite bundle).
+- PASS: npm run lint with zero errors and the same four existing hook-dependency warnings. Existing Vite bundle-size/mixed-import advisories remain.
+- Browser connection availability checked using the Browser skill: no connected browsers were available. Visual, click and keyboard QA remain unverified. No unsupported browser fallback or real financial action was performed.

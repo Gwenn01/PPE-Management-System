@@ -1,5 +1,6 @@
 import { z } from 'zod'
-import type { ApprovalHistoryEntry, ApprovalRequest, ApprovalSubject, Asset, AssetRegistration, Document, WorkflowStatus } from '../domain/models.js'
+import type { ApprovalHistoryEntry, ApprovalRequest, ApprovalSubject, Asset, AssetRegistration, ConstructionProject, Document, WorkflowStatus } from '../domain/models.js'
+import { postCapitalization } from './capitalizationPosting.js'
 import { approvalResources, approvalTransitionRules } from '../domain/workflow.js'
 import { hasRolePermission } from '../domain/permissions.js'
 import type { MockDatabase } from '../mock/database.js'
@@ -30,8 +31,8 @@ export type ApprovalSubjectDetails = {
   capabilities: { review: boolean; approve: boolean; return: boolean; reject: boolean }
 }
 
-/** One central workflow for all seven subject types. The later-phase decisions only update
- * their request statuses, NOT asset lifecycle, ledgers, CIP balances or adjustments.
+/** Central approval workflow. Registration and prepared CIP capitalization execute their
+ * authorized registry/accounting handoffs inside the same decision transaction.
  */
 export function createApprovalManagementService(db: MockDatabase = defaultDatabase) {
   async function reader(ctx: RequestContext) {
@@ -48,11 +49,11 @@ export function createApprovalManagementService(db: MockDatabase = defaultDataba
     if (approval.municipalityId !== ctx.municipalityId || !allowed(approval.subjectType, 'read')) throw new DataError('not_found', 'Approval is not accessible in this municipality.')
     const table = subjectTables[approval.subjectType]
     const target = await db.entity(table).get(approval.subjectId)
-    if (!target || target.municipalityId !== ctx.municipalityId || target.requestedById !== approval.requestedById || target.workflowStatus !== approval.workflowStatus)
+    if (!target || target.municipalityId !== ctx.municipalityId || (approval.subjectType === 'capitalization' ? (target as ConstructionProject).capitalization?.requestedById ?? target.requestedById : target.requestedById) !== approval.requestedById || target.workflowStatus !== approval.workflowStatus)
       throw new DataError('conflict', 'The originating request and approval no longer agree.')
     const requester = await db.entity('users').get(approval.requestedById)
     if (!requester || requester.municipalityId !== ctx.municipalityId) throw new DataError('not_found', 'Requester is unavailable.')
-    const files = await Promise.all(target.documentIds.map((id) => db.entity('documents').get(id)))
+    const files = await Promise.all((approval.subjectType === 'capitalization' && (target as ConstructionProject).capitalization ? approval.documentIds : target.documentIds).map((id) => db.entity('documents').get(id)))
     const documents = files.filter((file): file is Document => !!file && file.municipalityId === ctx.municipalityId && file.entityId === target.id && (file.entityType === approval.subjectType || (approval.subjectType === 'capitalization' && file.entityType === 'project')))
     const actors: Record<string, string> = {}
     for (const id of new Set([approval.requestedById, ...approval.history.map((entry) => entry.actorId)])) {
@@ -95,12 +96,23 @@ export function createApprovalManagementService(db: MockDatabase = defaultDataba
       if ((parsed.decision === 'return' || parsed.decision === 'reject') && !reason) throw new DataError('validation', 'A reason is mandatory when returning or rejecting a request.', { remarks: 'Explain the correction or rejection.' })
       const table = subjectTables[old.subjectType]
       const target = await db.entity(table).get(old.subjectId)
-      if (!target || target.municipalityId !== actor.municipalityId || target.requestedById !== old.requestedById || target.workflowStatus !== old.workflowStatus)
+      if (!target || target.municipalityId !== actor.municipalityId || (old.subjectType === 'capitalization' ? (target as ConstructionProject).capitalization?.requestedById ?? target.requestedById : target.requestedById) !== old.requestedById || target.workflowStatus !== old.workflowStatus)
         throw new DataError('conflict', 'The originating record changed. Reload the approval.')
       const status: WorkflowStatus = rule.to
       const at = new Date().toISOString()
       let updatedTarget = parseEntity(table, { ...target, workflowStatus: status, version: target.version + 1, updatedAt: at })
       let registryAsset: Asset | null = null
+      if (old.subjectType === 'capitalization' && status === 'approved' && !(target as ConstructionProject).capitalization) throw new DataError('invalid_transition', 'Accounting must prepare qualifying CIP costs, completion evidence and depreciation requirements before capitalization approval.')
+      if (old.subjectType === 'capitalization' && (target as ConstructionProject).capitalization && status !== 'approved') {
+        const project = target as ConstructionProject, construction = structuredClone(project.construction!)
+        construction.timeline.push({ id: crypto.randomUUID(), actorId: actor.id, occurredAt: at, action: `capitalization_${parsed.decision}`, note: reason || 'Capitalization request under review.', documentIds: project.capitalization!.evidenceIds, progressPercent: construction.progressPercent })
+        updatedTarget = parseEntity('projects', { ...updatedTarget, construction })
+      }
+      if (old.subjectType === 'capitalization' && status === 'approved' && (target as ConstructionProject).capitalization) {
+        const posted = await postCapitalization(db, target as ConstructionProject, actor, at, transactionId)
+        registryAsset = posted.asset
+        updatedTarget = posted.project
+      }
       if (old.subjectType === 'registration' && status === 'approved') {
         const registration = target as AssetRegistration
         // A previously recognized asset cannot be approved twice, even by a stale client.
@@ -132,9 +144,9 @@ export function createApprovalManagementService(db: MockDatabase = defaultDataba
       const notification = parseEntity('notifications', {
         id: crypto.randomUUID(), municipalityId: actor.municipalityId, version: 1, createdAt: at, updatedAt: at,
         recipientId: old.requestedById, title: `${approvalTypeLabels[old.subjectType]} ${status.replaceAll('_', ' ')}`,
-        message: reason || (status === 'approved' ? 'Your request was approved. Accounting recognition, if applicable, is a separate step.' : 'Your request is now under review.'),
+        message: reason || (status === 'approved' ? old.subjectType === 'capitalization' && (target as ConstructionProject).capitalization ? 'Approved qualifying CIP transferred to recognized PPE. Review its saved depreciation requirements.' : 'Your request was approved. Accounting recognition, if applicable, is a separate step.' : 'Your request is now under review.'),
         severity: status === 'approved' ? 'success' : status === 'rejected' ? 'error' : status === 'returned' ? 'warning' : 'info',
-        href: old.subjectType === 'registration' ? '/dashboard/asset-registration' : '/dashboard', readAt: null,
+        href: old.subjectType === 'registration' ? '/dashboard/asset-registration' : old.subjectType === 'capitalization' && (target as ConstructionProject).capitalization ? '/dashboard/cip-costs' : '/dashboard', readAt: null,
       })
       await db.entity('notifications').add(notification)
       await writeAudit(db, actor, transactionId, 'notifications', null, notification, 'approval_notice')

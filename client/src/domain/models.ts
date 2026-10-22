@@ -1,6 +1,7 @@
 import type { RegistrationDocumentType } from './registration.js'
 import type { ConstructionTracking, ProjectDocumentType } from './construction.js'
 import type { BudgetHandoff, BudgetProcessing } from './budget.js'
+import type { CapitalizationPreparation, CIPAccounting, ReadyForUse } from './cip.js'
 import type { Role } from '../config/roles.js'
 
 export type MunicipalityId = 'botolan' | 'san_antonio'
@@ -77,7 +78,7 @@ export interface Asset extends ScopedEntity {
   /** New registry entries are not accounting-recognized until a later accounting command. Legacy seeds may omit it. */
   recognitionStatus?: 'awaiting_recognition' | 'recognized'
   condition: AssetCondition
-  registrationId: EntityId
+  registrationId: EntityId | null
   constructionProjectId: EntityId | null
 }
 
@@ -95,6 +96,8 @@ export interface AssetRegistration extends WorkflowEntity {
 }
 
 export interface ConstructionProject extends WorkflowEntity {
+  readyForUse?: ReadyForUse
+  capitalization?: CapitalizationPreparation
   construction?: ConstructionTracking
   projectNumber: string
   name: string
@@ -122,6 +125,7 @@ export interface ProjectDocumentRouting extends WorkflowEntity {
 }
 
 export interface CIPCost extends WorkflowEntity {
+  accounting?: CIPAccounting
   projectId: EntityId
   description: string
   amount: Money

@@ -21,6 +21,7 @@ export function createAccountingService(db: MockDatabase = database) {
     recognize: (ctx: RequestContext, input: { assetId: string; version: number; policyId: string; policyVersion: number; postingDate: string; treatment: RecognitionDetails['treatment']; usefulLifeMonths: number; residualValue: number; reason: string }) => respond(() => commitMutation(db, async transactionId => {
       const actor = await authorize(db, ctx, 'recognition', 'create')
       const asset = await scopedRecord(db, actor, 'assets', input.assetId)
+      if (!asset.registrationId || asset.constructionProjectId) throw new DataError('invalid_transition', 'Construction assets are recognized by approved capitalization, not registration recognition.')
       const registration = await scopedRecord(db, actor, 'registrations', asset.registrationId)
       const policy = await scopedRecord(db, actor, 'depreciationPolicies', input.policyId)
       if (asset.version !== input.version || policy.version !== input.policyVersion) throw new DataError('conflict', 'Asset or policy changed. Reload before saving.')

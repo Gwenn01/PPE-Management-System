@@ -14,6 +14,7 @@ import { DataError, respond } from './errors.js'
 import { budgetDocumentTypes } from '../domain/budget.js'
 import { appendBudgetEvent, editableBudgetStatuses } from './budgetValidation.js'
 import type { ProjectDocumentRouting } from '../domain/models.js'
+import { accountingReceipts, assertCIPMutable } from './cipValidation.js'
 
 export const documentLimits = { maxBytes: 5 * 1024 * 1024, mimeTypes: ['application/pdf', 'image/png', 'image/jpeg', 'text/plain'] } as const
 export interface DocumentUpload { fileName: string; file: Blob; entityType: Document['entityType']; entityId: string; documentType?: RegistrationDocumentType; projectDocumentType?: ProjectDocumentType; budgetRoutingId?: string }
@@ -45,7 +46,7 @@ export function createDocumentService(database: MockDatabase) {
         const actor = await authorize(database, context, 'documents', 'create')
         const table = subjectTables[input.entityType]
         const owner = await scopedRecord(database, actor, table, input.entityId)
-        const resource = table === 'projects' && (actor.role === 'engineering_office' || actor.role === 'budget_office')
+        const resource = table === 'projects' && actor.role === 'accounting_officer' ? 'cip_costs' : table === 'projects' && (actor.role === 'engineering_office' || actor.role === 'budget_office')
           ? actor.role === 'engineering_office' ? 'engineering_documents' : 'budget_documents' : tableResources[table]
         await authorize(database, context, resource, 'update')
         if (input.entityType === 'registration' && owner.requestedById !== actor.id) throw new DataError('forbidden', 'Only the registration requester may manage its draft documents.')
@@ -54,6 +55,13 @@ export function createDocumentService(database: MockDatabase) {
           if (attached.some((doc) => doc?.documentType === input.documentType)) throw new DataError('duplicate', 'Replace an existing document of this type by removing it first.')
         }
         const project = table === 'projects' ? owner as ConstructionProject : null
+        const cipUpload = input.projectDocumentType === 'cip_support'
+        if (project?.capitalization && ['submitted', 'under_review', 'approved', 'rejected'].includes(project.workflowStatus)) throw new DataError('invalid_transition', 'Capitalization evidence is locked for review or after a final decision.')
+        if (cipUpload) {
+          if (actor.role !== 'accounting_officer' || !project) throw new DataError('forbidden', 'CIP support documents belong to Accounting processing.')
+          assertCIPMutable(project)
+          if (!(await accountingReceipts(database, project, actor.id)).length) throw new DataError('forbidden', 'Acknowledge the processed Budget packet before attaching CIP support.')
+        } else if (actor.role === 'accounting_officer' && project) throw new DataError('forbidden', 'Accounting uploads only CIP supporting evidence in this module.')
         const budgetType = budgetDocumentTypes.some(t => t === input.projectDocumentType)
         let budgetRoute: ProjectDocumentRouting | null = null
         if (budgetType) {
@@ -66,7 +74,7 @@ export function createDocumentService(database: MockDatabase) {
         if (project?.construction) {
           if (!input.projectDocumentType) throw new DataError('validation', 'Choose a project evidence type.')
           if (input.projectDocumentType === 'engineering_report' && actor.role !== 'engineering_office') throw new DataError('forbidden', 'Engineering reports must be uploaded by the assigned Engineering officer.')
-          if (['capitalized', 'cancelled'].includes(project.projectStatus) || (project.projectStatus === 'completed' && !budgetRoute && !(actor.role === 'engineering_office' && ['returned', 'engineering_received', 'processed'].includes(project.construction.stage)))) throw new DataError('invalid_transition', 'Closed project documents are read-only.')
+          if (['capitalized', 'cancelled'].includes(project.projectStatus) || (project.projectStatus === 'completed' && !budgetRoute && !cipUpload && !(actor.role === 'property_officer' && project.capitalization && ['draft', 'returned'].includes(project.workflowStatus) && ['completion_certificate', 'acceptance_report'].includes(input.projectDocumentType)) && !(actor.role === 'engineering_office' && ['returned', 'engineering_received', 'processed'].includes(project.construction.stage)))) throw new DataError('invalid_transition', 'Closed project documents are read-only.')
           const engineering = ['construction_plan', 'availability_of_fund', 'engineering_report', 'progress_report']
           if ((actor.role === 'budget_office' && !budgetRoute) || (actor.role === 'engineering_office' && (!engineering.includes(input.projectDocumentType) || !['engineering_received', 'processed', 'returned'].includes(project.construction.stage)))) throw new DataError('forbidden', 'This evidence cannot be uploaded at the current processing stage.')
           if (actor.role === 'property_officer' && ['construction_plan', 'availability_of_fund'].includes(input.projectDocumentType) && !['awaiting_proposal', 'proposal_recorded', 'mayor_simulated', 'returned'].includes(project.construction.stage)) throw new DataError('invalid_transition', 'Engineering is processing these documents; replacements require a return.')

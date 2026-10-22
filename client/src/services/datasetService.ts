@@ -29,6 +29,11 @@ async function replaceScope(database: MockDatabase, actor: User, replacement: Da
     }
     if (replacement.projects.some(p => p.construction && !before.projects.some(old => old.id === p.id && old.construction))) throw new DataError('validation', 'Register tracked projects through the construction workflow.')
     const trackedIds = new Set(before.projects.filter(p => p.construction).map(p => p.id))
+    for (const old of before.cipCosts.filter(c => c.accounting)) {
+      const incoming = replacement.cipCosts.find(c => c.id === old.id)
+      if (!incoming || !sameData(old, incoming)) throw new DataError('conflict', 'CIP expenditure and capitalization history cannot be rewritten by import.')
+    }
+    if (replacement.cipCosts.some(c => c.accounting && !before.cipCosts.some(old => old.id === c.id))) throw new DataError('validation', 'Record managed CIP through Accounting processing.')
     for (const name of ['documents', 'documentRouting'] as const) {
       const tracked = (row: EntityMap[typeof name]) => 'projectId' in row ? trackedIds.has(row.projectId) : trackedIds.has(row.entityId)
       for (const old of before[name].filter(tracked)) {

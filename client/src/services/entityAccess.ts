@@ -32,6 +32,10 @@ export async function visibleRecord<K extends EntityName>(database: MockDatabase
   if (recordMunicipality(name, row) !== actor.municipalityId) return false
   if (name === 'projects') {
     const project = row as EntityMap['projects']
+    if (project.capitalization && actor.role === 'approving_officer') {
+      const grants = await database.entity('permissions').where('[municipalityId+role]').equals([actor.municipalityId, actor.role]).toArray()
+      return grants.some(g => g.resource === 'capitalization_approvals' && g.action === 'read') && !!await database.entity('approvals').where('subjectId').equals(project.id).filter(a => a.subjectType === 'capitalization' && a.municipalityId === actor.municipalityId).first()
+    }
     if (project.construction && actor.role === 'accounting_officer') {
       const packets = await database.entity('documentRouting').where('projectId').equals(project.id).filter(r => r.municipalityId === actor.municipalityId && r.toRole === 'accounting_officer' && r.assignedUserId === actor.id && !!r.budgetHandoff && !!r.budgetSourceRoutingId).toArray()
       return packets.some(r => treasuryConfirmed(r.budgetHandoff!))
@@ -42,6 +46,10 @@ export async function visibleRecord<K extends EntityName>(database: MockDatabase
     if (actor.role === 'engineering_office' || actor.role === 'budget_office') return !!await database.entity('documentRouting').where('projectId').equals(project.id).filter(r => r.municipalityId === actor.municipalityId && (r.assignedUserId === actor.id || r.requestedById === actor.id)).first()
   }
   if (name === 'notifications') return (row as EntityMap['notifications']).recipientId === actor.id
+  if (name === 'cipCosts' && (row as EntityMap['cipCosts']).accounting) {
+    const cost = row as EntityMap['cipCosts'], project = await database.entity('projects').get(cost.projectId)
+    return !!project && await visibleRecord(database, actor, 'projects', project)
+  }
   if (name === 'documentRouting') {
     const route = row as EntityMap['documentRouting']
     const project = await database.entity('projects').get(route.projectId)
@@ -61,7 +69,8 @@ export async function visibleRecord<K extends EntityName>(database: MockDatabase
     if (ownerTable === 'projects' && !await visibleRecord(database, actor, 'projects', target as EntityMap['projects'])) return false
     if (ownerTable === 'projects' && actor.role === 'accounting_officer') {
       const packets = await database.entity('documentRouting').where('projectId').equals(document.entityId).filter(r => r.municipalityId === actor.municipalityId && r.assignedUserId === actor.id && !!r.budgetHandoff && r.documentIds.includes(document.id)).toArray()
-      return canAccess(actor, { resource: 'cip_costs', action: 'read' }, actor) && packets.length > 0 && (await database.entity('permissions').where('[municipalityId+role]').equals([actor.municipalityId, actor.role]).toArray()).some(g => g.resource === 'cip_costs' && g.action === 'read')
+      const completionEvidence = ['cip_support', 'completion_certificate', 'acceptance_report'].includes(document.projectDocumentType ?? '') && !!await database.entity('documentRouting').where('projectId').equals(document.entityId).filter(r => r.municipalityId === actor.municipalityId && r.assignedUserId === actor.id && r.toRole === 'accounting_officer' && !!r.budgetHandoff && r.workflowStatus === 'approved' && !!r.receivedAt).first()
+      return canAccess(actor, { resource: 'cip_costs', action: 'read' }, actor) && (packets.length > 0 || completionEvidence) && (await database.entity('permissions').where('[municipalityId+role]').equals([actor.municipalityId, actor.role]).toArray()).some(g => g.resource === 'cip_costs' && g.action === 'read')
     }
     const grants = await database.entity('permissions').where('[municipalityId+role]').equals([actor.municipalityId, actor.role]).toArray()
     const hasGrant = (resource: Resource) => canAccess(actor, { resource, action: 'read' }, actor) &&

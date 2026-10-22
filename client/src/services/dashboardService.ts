@@ -52,7 +52,7 @@ export function createDashboardService(storage: MockDatabase = database) {
       const role = actor.role
       const scoped = async <K extends Exclude<EntityName, 'municipalities'>>(entity: K): Promise<EntityMap[K][]> => {
         const rows = await storage.entity(entity).where('municipalityId').equals(actor.municipalityId).toArray()
-        if (entity !== 'projects' && entity !== 'documentRouting') return rows
+        if (entity !== 'projects' && entity !== 'documentRouting' && entity !== 'cipCosts') return rows
         const visible: EntityMap[K][] = []
         for (const row of rows) if (await visibleRecord(storage, actor, entity, row)) visible.push(row)
         return visible
@@ -102,7 +102,7 @@ export function createDashboardService(storage: MockDatabase = database) {
             scoped('registrations'), scoped('cipCosts'), scoped('accountingRecords'), scoped('reconciliations'),
           ])
           // Posted CIP account movements are authoritative; costs are not double-counted.
-          const cipBalance = sum(entries.filter((row) => row.kind === 'cip').map((row) => row.debit - row.credit))
+          const cipBalance = sum(entries.filter((row) => row.kind === 'cip' || row.kind === 'capitalization' && row.accountCode === 'DEMO-CIP').map((row) => row.debit - row.credit))
           const depreciation = sum(entries.filter((row) => row.kind === 'depreciation').map((row) => row.credit - row.debit))
           metrics = [
             count('recognition', 'Assets awaiting recognition', registrations.filter((row) => row.workflowStatus === 'approved' && !row.recognizedAssetId).length, 'Approved registrations not linked to an asset'),
@@ -120,6 +120,8 @@ export function createDashboardService(storage: MockDatabase = database) {
           if (grants.some(g => g.role === role && g.resource === 'cip_costs' && g.action === 'read')) {
             const packets = (await scoped('documentRouting')).filter(r => r.toRole === role && r.assignedUserId === actor.id && !!r.budgetHandoff)
             const projects = await scoped('projects')
+            metrics.push(count('capitalization', 'Capitalization requests under review', projects.filter(p => p.capitalization && ['submitted', 'under_review'].includes(p.workflowStatus)).length, 'Prepared construction-to-PPE approvals'))
+            records.push(...projects.filter(p => p.capitalization).map(p => record(p.id, p.name, 'CIP capitalization request', p.workflowStatus, p.updatedAt, '/dashboard/cip-costs')))
             metrics.push(count('project_documents', 'Project packets awaiting receipt', packets.filter(r => r.workflowStatus === 'submitted').length, 'Reviewed Budget handoffs; Trust Fund Treasury confirmation is required'))
             records.push(...packets.map(r => record(r.id, projects.find(p => p.id === r.projectId)?.name ?? 'Construction document packet', `Voucher ${r.budgetHandoff!.voucher.reference}`, r.workflowStatus, r.updatedAt, '/dashboard/accounting-documents')))
           }

@@ -27,6 +27,6 @@ export function validApprovalEvent(subject: ApprovalSubject, event: ApprovalHist
   return rule.from.includes(event.fromStatus) && event.toStatus === rule.to &&
     (byRequester ? event.actorId === requesterId : event.actorId !== requesterId) &&
     (!['return', 'reject', 'cancel'].includes(event.action) || !!event.reason.trim()) &&
-    hasRolePermission(event.actorRole, { resource: byRequester ? submissionResources[subject] : approvalResources[subject], action: rule.permission })
+    hasRolePermission(event.actorRole, { resource: byRequester ? subject === 'capitalization' && event.actorRole === 'accounting_officer' ? 'cip_costs' : submissionResources[subject] : approvalResources[subject], action: rule.permission })
 }
 

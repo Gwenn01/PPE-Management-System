@@ -50,6 +50,7 @@ function editableWorkflow(record: EntityMap[WritableEntity], actor: User, name: 
 }
 
 export async function applyCreate<K extends WritableEntity>(database: MockDatabase, context: RequestContext, name: K, input: CreateInput<K>, transactionId: string): Promise<EntityMap[K]> {
+  if (name === 'cipCosts' && ('accounting' in input || 'projectId' in input && (await database.entity('projects').get(String(input.projectId)))?.construction)) throw new DataError('forbidden', 'Record tracked construction costs through CIP Accounting.')
   if (name === 'projects') throw new DataError('forbidden', 'Register projects through the construction workflow.')
   if (name === 'documentRouting' && 'projectId' in input && (await database.entity('projects').get(String(input.projectId)))?.construction) throw new DataError('forbidden', 'Forward documents through Engineering processing.')
   if (!writableSet.has(name)) throw new DataError('forbidden', 'This entity is not directly creatable.')
@@ -66,6 +67,7 @@ export async function applyUpdate<K extends WritableEntity>(database: MockDataba
   if (!writableSet.has(name)) throw new DataError('forbidden', 'This entity is not directly editable.')
   const actor = await authorizeEntity(database, context, name, 'update')
   const old = await scopedRecord(database, actor, name, recordId.parse(id))
+  if (name === 'cipCosts' && ((old as EntityMap['cipCosts']).accounting || 'accounting' in changes || 'projectId' in changes && (await database.entity('projects').get(String(changes.projectId)))?.construction)) throw new DataError('forbidden', 'Use CIP Accounting to review tracked expenditures.')
   if (name === 'documentRouting' && 'projectId' in changes && (await database.entity('projects').get(String(changes.projectId)))?.construction) throw new DataError('forbidden', 'Use the construction forwarding workflow for tracked projects.')
   if ((name === 'projects' && (old as EntityMap['projects']).construction) || (name === 'projects' && 'construction' in changes) || (name === 'documentRouting' && (await database.entity('projects').get((old as EntityMap['documentRouting']).projectId))?.construction)) throw new DataError('forbidden', 'Use the construction workflow for project changes.')
   checkVersion(old, version)
@@ -125,6 +127,7 @@ async function synchronizeApproval(database: MockDatabase, actor: User, name: Wo
 }
 
 async function applyWorkflow<K extends WorkflowEntityName>(database: MockDatabase, context: RequestContext, name: K, id: string, version: number, next: WorkflowStatus, reason: string, transactionId: string): Promise<EntityMap[K]> {
+  if (name === 'cipCosts' && (await database.entity('cipCosts').get(id))?.accounting) throw new DataError('forbidden', 'Tracked CIP costs require qualifying-cost review.')
   if (name === 'projects' && (await database.entity('projects').get(id))?.construction) throw new DataError('forbidden', 'Construction processing does not submit capitalization approvals.')
   if (name === 'documentRouting') {
     const route = await database.entity('documentRouting').get(id)

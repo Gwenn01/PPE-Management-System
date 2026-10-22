@@ -20,6 +20,7 @@ const commandSchema = z.discriminatedUnion('action', [
   z.strictObject({ action: z.literal('forward'), note: text }),
   z.strictObject({ action: z.literal('return'), note: text }),
   z.strictObject({ action: z.literal('complete'), note: text, actualCompletionDate: z.iso.date() }),
+  z.strictObject({ action: z.literal('confirm_ready'), note: text, date: z.iso.date() }),
 ])
 export type ConstructionCommand = z.infer<typeof commandSchema>
 
@@ -73,10 +74,12 @@ export function createConstructionService(db: MockDatabase = database) {
       const actor = await authorize(db, ctx, ctx.actor.role === 'engineering_office' ? 'engineering_documents' : ctx.actor.role === 'budget_office' ? 'budget_documents' : 'construction_projects', command.action === 'forward' ? 'submit' : 'update')
       const old = await scopedRecord(db, actor, 'projects', id)
       if (old.version !== z.number().int().positive().parse(version)) throw new DataError('conflict', 'Project changed. Reload before continuing.')
-      if (!old.construction || ['capitalized', 'cancelled'].includes(old.projectStatus) || (old.projectStatus === 'completed' && !['review', 'forward'].includes(command.action))) throw new DataError('invalid_transition', 'This project is historical or closed and cannot be processed here.')
+      if (!old.construction || ['capitalized', 'cancelled'].includes(old.projectStatus) || (old.projectStatus === 'completed' && !['review', 'forward', 'confirm_ready'].includes(command.action))) throw new DataError('invalid_transition', 'This project is historical or closed and cannot be processed here.')
+      if (old.capitalization && ['submitted', 'under_review', 'approved', 'rejected'].includes(old.workflowStatus)) throw new DataError('invalid_transition', 'Capitalization evidence is locked during approval or after a final decision.')
       const c = structuredClone(old.construction), at = new Date().toISOString()
       const docs: string[] = []
       let projectStatus = old.projectStatus, completionDate = old.completionDate
+      let readyForUse = old.readyForUse
       const requireRole = (role: User['role']) => { if (actor.role !== role) throw new DataError('forbidden', `This action requires the assigned ${role.replaceAll('_', ' ')}.`) }
       const requireStage = (...stages: string[]) => { if (!stages.includes(c.stage)) throw new DataError('invalid_transition', 'Complete the preceding project processing steps first.') }
       const need = async (type: ProjectDocumentType) => { const d = await evidence(old, type); docs.push(d.id); return d }
@@ -121,6 +124,11 @@ export function createConstructionService(db: MockDatabase = database) {
         await writeAudit(db, actor, tx, 'documentRouting', route, updated, 'return_to_engineering', command.note)
         await notify(actor, c.engineeringUserId, old, 'Budget returned the Engineering packet', tx)
         c.stage = 'returned'; c.constructionReview = 'pending'; c.fundReview = 'pending'
+      } else if (command.action === 'confirm_ready') {
+        requireRole('property_officer')
+        if (old.projectStatus !== 'completed' || !old.completionDate || command.date < old.completionDate.slice(0, 10) || command.date > at.slice(0, 10)) throw new DataError('validation', 'Intended-use readiness requires a completed project and a date from actual completion through today.')
+        await need('completion_certificate'); await need('acceptance_report')
+        readyForUse = { date: command.date, confirmedById: actor.id, confirmedAt: at, note: command.note, documentIds: [...docs] }
       } else {
         requireRole('property_officer'); requireStage('processed', 'forwarded')
         if (c.progressPercent !== 100 || c.constructionReview !== 'accepted' || c.fundReview !== 'accepted') throw new DataError('validation', 'Completion requires 100% progress and accepted Engineering reviews.')
@@ -130,7 +138,7 @@ export function createConstructionService(db: MockDatabase = database) {
         projectStatus = 'completed'; completionDate = command.actualCompletionDate
       }
       c.timeline.push({ id: crypto.randomUUID(), actorId: actor.id, occurredAt: at, action: command.action === 'review' ? `review_${command.subject}_${command.result}` : command.action, note: command.action === 'simulate_mayor' ? `EXTERNAL STEP SIMULATION ONLY - not a real Mayor approval. ${command.note}` : command.note, documentIds: docs, progressPercent: c.progressPercent })
-      const row = parseEntity('projects', { ...old, construction: c, projectStatus, completionDate, version: old.version + 1, updatedAt: at })
+      const row = parseEntity('projects', { ...old, ...(readyForUse ? { readyForUse } : {}), construction: c, projectStatus, completionDate, version: old.version + 1, updatedAt: at })
       await db.entity('projects').put(row)
       await writeAudit(db, actor, tx, 'projects', old, row, `construction_${command.action}`, command.note)
       return row
