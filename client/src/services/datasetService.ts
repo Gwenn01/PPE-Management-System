@@ -23,6 +23,18 @@ function sameData(a: EntityMap[EntityName], b: EntityMap[EntityName]): boolean {
 async function replaceScope(database: MockDatabase, actor: User, replacement: Dataset, transactionId: string, operation: 'import' | 'reset'): Promise<void> {
   const before = scopeDataset(await database.snapshot(), actor.municipalityId)
   if (operation === 'import') {
+    for (const name of ['inventorySessions', 'inventoryChecks', 'discrepancies'] as const) {
+      for (const old of before[name]) {
+        const incoming = replacement[name].find(row => row.id === old.id)
+        if (!incoming || !sameData(old, incoming)) throw new DataError('conflict', 'Inventory observations, investigations and correction history cannot be rewritten by import.')
+      }
+      if (replacement[name].some(row => !before[name].some(old => old.id === row.id))) throw new DataError('validation', 'Create inventory records through the controlled inventory workflow.')
+    }
+    const correctionIds = new Set(before.discrepancies.map(d => d.id))
+    const inspectedAssetIds = new Set([...before.inventoryChecks.map(c => c.assetId), ...before.inventorySessions.flatMap(s => s.inventory?.assetIds ?? [])])
+    for (const old of before.assets.filter(a => inspectedAssetIds.has(a.id))) if (!replacement.assets.some(a => a.id === old.id && sameData(a, old))) throw new DataError('conflict', 'Use an approved correction to change official inventory asset records; import cannot bypass authorization.')
+    for (const old of before.approvals.filter(a => a.subjectType === 'correction')) if (!replacement.approvals.some(a => a.id === old.id && sameData(a, old))) throw new DataError('conflict', 'Correction decisions cannot be rewritten by import.')
+    for (const old of before.documents.filter(d => d.entityType === 'correction' && correctionIds.has(d.entityId))) if (!replacement.documents.some(d => d.id === old.id && sameData(d, old))) throw new DataError('conflict', 'Correction evidence cannot be rewritten by import.')
     for (const old of before.projects.filter(p => p.construction)) {
       const incoming = replacement.projects.find(p => p.id === old.id)
       if (!incoming || !sameData(old, incoming)) throw new DataError('conflict', 'Construction history cannot be removed or rewritten by import.')

@@ -30,6 +30,14 @@ export async function authorizeEntity(database: MockDatabase, context: RequestCo
 
 export async function visibleRecord<K extends EntityName>(database: MockDatabase, actor: User, name: K, row: EntityMap[K]): Promise<boolean> {
   if (recordMunicipality(name, row) !== actor.municipalityId) return false
+  if (name === 'inventorySessions') {
+    const session = row as EntityMap['inventorySessions']
+    return actor.role === 'inventory_personnel' && (session.requestedById === actor.id || session.assignedUserIds.includes(actor.id))
+  }
+  if (name === 'inventoryChecks') {
+    const check = row as EntityMap['inventoryChecks'], session = await database.entity('inventorySessions').get(check.sessionId)
+    return !!session && await visibleRecord(database, actor, 'inventorySessions', session)
+  }
   if (name === 'projects') {
     const project = row as EntityMap['projects']
     if (project.capitalization && actor.role === 'approving_officer') {

@@ -52,7 +52,7 @@ export function createDashboardService(storage: MockDatabase = database) {
       const role = actor.role
       const scoped = async <K extends Exclude<EntityName, 'municipalities'>>(entity: K): Promise<EntityMap[K][]> => {
         const rows = await storage.entity(entity).where('municipalityId').equals(actor.municipalityId).toArray()
-        if (entity !== 'projects' && entity !== 'documentRouting' && entity !== 'cipCosts') return rows
+        if (entity !== 'projects' && entity !== 'documentRouting' && entity !== 'cipCosts' && entity !== 'inventorySessions' && entity !== 'inventoryChecks') return rows
         const visible: EntityMap[K][] = []
         for (const row of rows) if (await visibleRecord(storage, actor, entity, row)) visible.push(row)
         return visible
@@ -134,17 +134,18 @@ export function createDashboardService(storage: MockDatabase = database) {
           const ownChecks = checks.filter((row) => sessionIds.has(row.sessionId) && row.checkedById === actor.id)
           const byId = new Map(assets.map((row) => [row.id, row]))
           const mismatch = (check: typeof ownChecks[number]) => {
+            if (check.inspection) return check.inspection.attempts.at(-1)?.result === 'discrepancy'
             const asset = byId.get(check.assetId)
             return !asset || !check.found || asset.location !== check.observedLocation || asset.custodianId !== check.observedCustodianId || asset.condition !== check.observedCondition
           }
           metrics = [
             count('assigned', 'Assigned inventory work', assigned.filter((row) => row.sessionStatus === 'planned' || row.sessionStatus === 'in_progress').length, 'Your active assignments'),
-            count('verified', 'Verified assets', new Set(ownChecks.filter((row) => row.found).map((row) => row.assetId)).size, 'Unique assets you found'),
+            count('verified', 'Verified assets', new Set(ownChecks.filter((row) => !row.inspection?.reopen && !mismatch(row)).map((row) => row.assetId)).size, 'Matching verified observations'),
             count('discrepancies', 'Discrepancies', ownChecks.filter(mismatch).length, 'Observed mismatches in your checks'),
             count('sessions', 'Recent sessions', assigned.length, 'Your assigned inventory sessions'),
           ]
           recordsTitle = 'Assigned inventory sessions'
-          records = assigned.map((row) => record(row.id, row.title, `Scheduled ${row.scheduledDate}`, row.sessionStatus, row.updatedAt))
+          records = assigned.map((row) => record(row.id, row.title, `Scheduled ${row.scheduledDate}`, row.sessionStatus, row.updatedAt, '/dashboard/physical-inventory'))
           break
         }
         case 'approving_officer': {

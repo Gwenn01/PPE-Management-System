@@ -351,12 +351,12 @@ describe('persistent mock data layer', () => {
 
   it('stamps the inventory observer and prevents a second check for the same session and asset', async () => {
     const inventory = context('inventory_personnel')
-    const input = { sessionId: 'botolan-inventory-october', assetId: 'botolan-asset-2', found: true, observedLocation: 'Demo equipment store', observedCustodianId: property.actor.id, observedCondition: 'good' as const, notes: 'Fictional observation' }
-    const check = success(await services.entities.inventoryChecks.create(inventory, input))
+    const input = { assetVersion: (await db.entity('assets').get('botolan-asset-2'))!.version, sessionId: 'botolan-inventory-october', assetId: 'botolan-asset-2', found: true, observedLocation: 'Demo equipment store', observedCustodianId: property.actor.id, observedCondition: 'good' as const, notes: 'Fictional observation' }
+    const check = success(await services.inventory.inspect(inventory, input)).check
     assert.equal(check.checkedById, inventory.actor.id)
     assert.ok(check.checkedAt)
-    error(await services.entities.inventoryChecks.create(inventory, input), 'duplicate')
-    error(await services.entities.inventoryChecks.create(inventory, { ...input, checkedById: admin.actor.id } as unknown as typeof input), 'validation')
+    error(await services.inventory.inspect(inventory, input), 'duplicate')
+    error(await services.inventory.inspect(inventory, { ...input, checkedById: admin.actor.id } as unknown as typeof input), 'validation')
   })
 
   it('rejects inconsistent CIP/accounting links on dataset import', async () => {

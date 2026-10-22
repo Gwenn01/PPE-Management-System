@@ -1,3 +1,4 @@
+import { createInventoryService } from './inventoryService.js'
 import { createAccountingService } from './accountingService.js'
 import { createConstructionService } from './constructionService.js'
 import { createBudgetService } from './budgetService.js'
@@ -23,6 +24,7 @@ export function createMockDataServices(storage: MockDatabase = database) {
       return { schemaVersion: storage.verno }
     }),
     entities: createEntityServices(storage),
+    inventory: createInventoryService(storage),
     construction: createConstructionService(storage),
     budget: createBudgetService(storage),
     cip: createCIPService(storage),

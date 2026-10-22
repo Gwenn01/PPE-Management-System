@@ -9,6 +9,7 @@ import type { WorkflowStatus } from '../../domain/models.js'
 import { DataError } from '../../services/errors.js'
 import { datasetSchema, entityNames } from './schemas.js'
 import { upgradeLegacyDataset } from './usernames.js'
+import { inspectionFlags } from '../../domain/inventory.js'
 
 export const subjectTables = { registration: 'registrations', capitalization: 'projects', correction: 'discrepancies', transfer: 'transfers', maintenance: 'maintenance', disposal: 'disposals', reconciliation: 'reconciliations', project: 'projects', inventory: 'inventorySessions', cip_cost: 'cipCosts' } as const
 
@@ -162,7 +163,16 @@ export function validateDataset(input: unknown): Dataset {
       if (data.documentRouting.filter(r => r.budgetSourceRoutingId === source.id && r.workflowStatus === 'submitted').length > 1) throw new DataError('validation', 'Duplicate outstanding Accounting forwarding.')
     }
   }
-  for (const row of data.inventorySessions) for (const userId of row.assignedUserIds) ref('users', userId, row.municipalityId)
+  for (const row of data.inventorySessions) {
+    for (const userId of row.assignedUserIds) ref('users', userId, row.municipalityId)
+    if (new Set(row.assignedUserIds).size !== row.assignedUserIds.length) throw new DataError('validation', 'Duplicate assigned inventory personnel.')
+    if (row.inventory) {
+      if (new Set(row.inventory.assetIds).size !== row.inventory.assetIds.length) throw new DataError('validation', 'Duplicate inventory scope asset.')
+      for (const id of row.inventory.assetIds) ref('assets', id, row.municipalityId)
+      for (const e of row.inventory.history) ref('users', e.actorId, row.municipalityId)
+      if (row.sessionStatus === 'completed' && row.inventory.assetIds.some(id => !data.inventoryChecks.some(c => c.sessionId === row.id && c.assetId === id && !c.inspection?.reopen))) throw new DataError('validation', 'Completed inventory sessions require every scoped asset inspection.')
+    }
+  }
   const checkedAssets = new Set<string>()
   for (const row of data.inventoryChecks) {
     const key = `${row.sessionId}:${row.assetId}`
@@ -172,11 +182,29 @@ export function validateDataset(input: unknown): Dataset {
     ref('users', row.checkedById, row.municipalityId)
     if (!session.assignedUserIds.includes(row.checkedById)) throw new DataError('validation', 'Inventory checks require an assigned session participant.')
     ref('users', row.observedCustodianId, row.municipalityId)
+    if (row.inspection) {
+      if (!session.inventory?.assetIds.includes(row.assetId)) throw new DataError('validation', 'Managed inspections require captured session membership.')
+      for (const [index, a] of row.inspection.attempts.entries()) {
+        ref('users', a.checkedById, row.municipalityId); ref('users', a.observedCustodianId, row.municipalityId); ref('users', a.baseline.custodianId, row.municipalityId)
+        const flags = inspectionFlags(a.baseline, a)
+        if (a.revision !== index + 1 || JSON.stringify(flags) !== JSON.stringify(a.flags) || a.result !== (flags.length ? 'discrepancy' : 'verified') || !session.assignedUserIds.includes(a.checkedById)) throw new DataError('validation', 'Invalid preserved inspection result.')
+      }
+      const latest = row.inspection.attempts.at(-1)!
+      for (const key of ['checkedById', 'checkedAt', 'found', 'observedLocation', 'observedCustodianId', 'observedCondition', 'notes'] as const) if (row[key] !== latest[key]) throw new DataError('validation', 'Latest observation must agree with preserved inspection history.')
+      for (const e of row.inspection.reopens) ref('users', e.actorId, row.municipalityId)
+    }
   }
   for (const row of data.discrepancies) {
     const check = ref('inventoryChecks', row.inventoryCheckId, row.municipalityId)!
     if (check.assetId !== row.assetId) throw new DataError('validation', 'Discrepancy does not match the inventory check.')
     if (row.proposedCorrection.custodianId !== undefined) ref('users', row.proposedCorrection.custodianId, row.municipalityId)
+    if (row.investigation) {
+      const i = row.investigation
+      if (i.sessionId !== check.sessionId || i.investigatorId && i.investigatorId !== row.requestedById || row.resolvedAt && row.workflowStatus !== 'approved' || row.workflowStatus === 'approved' && (!row.resolvedAt || !i.proposal)) throw new DataError('validation', 'Invalid discrepancy investigation or resolution.')
+      ref('users', i.detectedById, row.municipalityId); ref('users', i.investigatorId, row.municipalityId)
+      for (const e of i.history) ref('users', e.actorId, row.municipalityId)
+      if (check.inspection && !check.inspection.attempts.some(a => a.revision === i.checkRevision && a.result === 'discrepancy' && JSON.stringify(a.flags) === JSON.stringify(i.flags))) throw new DataError('validation', 'Discrepancy must retain its original flagged inspection.')
+    }
   }
   for (const row of data.transfers) {
     for (const id of [row.fromDepartmentId, row.toDepartmentId]) ref('departments', id, row.municipalityId)

@@ -1,6 +1,6 @@
 import { registrationDocumentTypes, type RegistrationDocumentType } from '../domain/registration.js'
 import { projectDocumentTypes, type ProjectDocumentType } from '../domain/construction.js'
-import type { ConstructionProject } from '../domain/models.js'
+import type { ConstructionProject, InventoryDiscrepancy } from '../domain/models.js'
 import { z } from 'zod'
 import type { Document } from '../domain/models.js'
 import type { MockDatabase } from '../mock/database.js'
@@ -54,6 +54,7 @@ export function createDocumentService(database: MockDatabase) {
           const attached = await Promise.all(owner.documentIds.map((id) => database.entity('documents').get(id)))
           if (attached.some((doc) => doc?.documentType === input.documentType)) throw new DataError('duplicate', 'Replace an existing document of this type by removing it first.')
         }
+        if (table === 'discrepancies' && (owner as InventoryDiscrepancy).investigation?.investigatorId !== actor.id) throw new DataError('forbidden', 'Record your investigation before attaching correction evidence.')
         const project = table === 'projects' ? owner as ConstructionProject : null
         const cipUpload = input.projectDocumentType === 'cip_support'
         if (project?.capitalization && ['submitted', 'under_review', 'approved', 'rejected'].includes(project.workflowStatus)) throw new DataError('invalid_transition', 'Capitalization evidence is locked for review or after a final decision.')

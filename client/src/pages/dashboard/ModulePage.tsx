@@ -5,6 +5,8 @@ import { lazy, Suspense } from 'react'
 const AccountingModule = lazy(() => import('../../features/accounting/AccountingModule'))
 const ConstructionModule = lazy(() => import('../../features/construction/ConstructionModule'))
 const BudgetModule = lazy(() => import('../../features/budget/BudgetModule'))
+const InventoryModule = lazy(() => import('../../features/inventory/InventoryModule'))
+const DiscrepancyModule = lazy(() => import('../../features/inventory/DiscrepancyModule'))
 const CIPModule = lazy(() => import('../../features/accounting/CIPModule'))
 const AccountingReportsModule = lazy(() => import('../../features/accounting/AccountingReportsModule'))
 const ApprovalManagementModule = lazy(() => import('../../features/approvals/ApprovalManagementModule'))
@@ -13,6 +15,8 @@ const AdministratorModule = lazy(() => import('../../features/administration/Adm
 
 /** Admin destinations are complete; unfinished business modules keep their clear placeholder. */
 export default function ModulePage({ item }: { item: NavItem }) {
+  if (item.path === 'physical-inventory' || item.path === 'asset-monitoring') return <Suspense fallback={<p role="status">Loading inventory...</p>}><InventoryModule /></Suspense>
+  if (item.path === 'discrepancies') return <Suspense fallback={<p role="status">Loading investigations...</p>}><DiscrepancyModule /></Suspense>
   if (item.path === 'cip-costs') return <Suspense fallback={<p role="status">Loading CIP accounting...</p>}><CIPModule /></Suspense>
   if (item.path === 'reports' || item.path === 'reconciliation') return <Suspense fallback={<p role="status">Loading accounting balances...</p>}><AccountingReportsModule reconciliation={item.path === 'reconciliation'} /></Suspense>
   if (item.path === 'budget' || item.path === 'accounting-documents') return <Suspense fallback={<p role="status">Loading document processing...</p>}><BudgetModule /></Suspense>

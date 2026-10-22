@@ -1,5 +1,6 @@
 import { z } from 'zod'
-import type { ApprovalHistoryEntry, ApprovalRequest, ApprovalSubject, Asset, AssetRegistration, ConstructionProject, Document, WorkflowStatus } from '../domain/models.js'
+import type { ApprovalHistoryEntry, ApprovalRequest, ApprovalSubject, Asset, AssetRegistration, ConstructionProject, Document, InventoryDiscrepancy, WorkflowStatus } from '../domain/models.js'
+import { validateInventoryCorrection } from './inventoryValidation.js'
 import { postCapitalization } from './capitalizationPosting.js'
 import { approvalResources, approvalTransitionRules } from '../domain/workflow.js'
 import { hasRolePermission } from '../domain/permissions.js'
@@ -102,6 +103,18 @@ export function createApprovalManagementService(db: MockDatabase = defaultDataba
       const at = new Date().toISOString()
       let updatedTarget = parseEntity(table, { ...target, workflowStatus: status, version: target.version + 1, updatedAt: at })
       let registryAsset: Asset | null = null
+      if (old.subjectType === 'correction') {
+        const discrepancy = target as InventoryDiscrepancy
+        if (status === 'approved') {
+          const asset = await validateInventoryCorrection(db, discrepancy)
+          if (discrepancy.investigation!.proposal!.resolution === 'correct_record') {
+            registryAsset = parseEntity('assets', { ...asset, ...discrepancy.proposedCorrection, version: asset.version + 1, updatedAt: at })
+            await db.entity('assets').put(registryAsset)
+            await writeAudit(db, actor, transactionId, 'assets', asset, registryAsset, 'approved_inventory_correction', discrepancy.investigation!.proposal!.reason)
+          }
+        }
+        if (discrepancy.investigation) updatedTarget = parseEntity('discrepancies', { ...updatedTarget, resolvedAt: status === 'approved' ? at : null, investigation: { ...discrepancy.investigation, history: [...discrepancy.investigation.history, { id: crypto.randomUUID(), actorId: actor.id, occurredAt: at, action: `approval_${parsed.decision}`, note: reason || 'Authorized inventory correction decision.' }] } })
+      }
       if (old.subjectType === 'capitalization' && status === 'approved' && !(target as ConstructionProject).capitalization) throw new DataError('invalid_transition', 'Accounting must prepare qualifying CIP costs, completion evidence and depreciation requirements before capitalization approval.')
       if (old.subjectType === 'capitalization' && (target as ConstructionProject).capitalization && status !== 'approved') {
         const project = target as ConstructionProject, construction = structuredClone(project.construction!)
@@ -144,9 +157,9 @@ export function createApprovalManagementService(db: MockDatabase = defaultDataba
       const notification = parseEntity('notifications', {
         id: crypto.randomUUID(), municipalityId: actor.municipalityId, version: 1, createdAt: at, updatedAt: at,
         recipientId: old.requestedById, title: `${approvalTypeLabels[old.subjectType]} ${status.replaceAll('_', ' ')}`,
-        message: reason || (status === 'approved' ? old.subjectType === 'capitalization' && (target as ConstructionProject).capitalization ? 'Approved qualifying CIP transferred to recognized PPE. Review its saved depreciation requirements.' : 'Your request was approved. Accounting recognition, if applicable, is a separate step.' : 'Your request is now under review.'),
+        message: reason || (status === 'approved' && old.subjectType === 'correction' ? 'The authorized inventory correction was applied and the discrepancy resolved.' : status === 'approved' ? old.subjectType === 'capitalization' && (target as ConstructionProject).capitalization ? 'Approved qualifying CIP transferred to recognized PPE. Review its saved depreciation requirements.' : 'Your request was approved. Accounting recognition, if applicable, is a separate step.' : 'Your request is now under review.'),
         severity: status === 'approved' ? 'success' : status === 'rejected' ? 'error' : status === 'returned' ? 'warning' : 'info',
-        href: old.subjectType === 'registration' ? '/dashboard/asset-registration' : old.subjectType === 'capitalization' && (target as ConstructionProject).capitalization ? '/dashboard/cip-costs' : '/dashboard', readAt: null,
+        href: old.subjectType === 'correction' ? '/dashboard/discrepancies' : old.subjectType === 'registration' ? '/dashboard/asset-registration' : old.subjectType === 'capitalization' && (target as ConstructionProject).capitalization ? '/dashboard/cip-costs' : '/dashboard', readAt: null,
       })
       await db.entity('notifications').add(notification)
       await writeAudit(db, actor, transactionId, 'notifications', null, notification, 'approval_notice')

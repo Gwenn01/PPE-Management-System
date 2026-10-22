@@ -2,6 +2,7 @@ import type { RegistrationDocumentType } from './registration.js'
 import type { ConstructionTracking, ProjectDocumentType } from './construction.js'
 import type { BudgetHandoff, BudgetProcessing } from './budget.js'
 import type { CapitalizationPreparation, CIPAccounting, ReadyForUse } from './cip.js'
+import type { DiscrepancyInvestigation, InspectionHistory, SessionInventory } from './inventory.js'
 import type { Role } from '../config/roles.js'
 
 export type MunicipalityId = 'botolan' | 'san_antonio'
@@ -134,6 +135,7 @@ export interface CIPCost extends WorkflowEntity {
 }
 
 export interface InventorySession extends WorkflowEntity {
+  inventory?: SessionInventory
   title: string
   departmentId: EntityId | null
   scheduledDate: ISODate
@@ -142,6 +144,7 @@ export interface InventorySession extends WorkflowEntity {
 }
 
 export interface InventoryCheck extends ScopedEntity {
+  inspection?: InspectionHistory
   sessionId: EntityId
   assetId: EntityId
   checkedById: EntityId
@@ -154,6 +157,7 @@ export interface InventoryCheck extends ScopedEntity {
 }
 
 export interface InventoryDiscrepancy extends WorkflowEntity {
+  investigation?: DiscrepancyInvestigation
   inventoryCheckId: EntityId
   assetId: EntityId
   kind: 'missing' | 'location' | 'custodian' | 'condition' | 'record_error'
