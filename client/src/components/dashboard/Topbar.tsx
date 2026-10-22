@@ -1,8 +1,8 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { LogOut, Menu } from 'lucide-react'
 import { navItems } from '../../config/navigation'
-import { roleLabels, roleList } from '../../config/roles'
-import type { Role } from '../../config/roles'
+import { isRole, roleLabels, roleList } from '../../config/roles'
+import { municipalityList } from '../../domain/municipalities'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
 
 type TopbarProps = {
@@ -29,7 +29,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   })
 
   const handleLogout = () => {
-    // TODO: clear the real session/token here once the API is connected.
+    // Navigation only during role preview. Mock session integration is a later phase.
     navigate('/login')
   }
 
@@ -50,14 +50,14 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
       </div>
 
       <div className="flex items-center gap-3 sm:gap-4">
-        {/* Dev-only: preview each role's navigation. Remove when the backend is connected. */}
+        {/* Explicit demo preview, not authenticated role switching. */}
         <label className="hidden items-center gap-2 text-xs text-gray sm:flex">
           <span className="rounded bg-chip px-2 py-0.5 font-semibold uppercase tracking-wide">
-            Dev
+            Demo
           </span>
           <select
             value={user.role}
-            onChange={(e) => setRole(e.target.value as Role)}
+            onChange={(e) => { if (isRole(e.target.value)) setRole(e.target.value) }}
             aria-label="Preview as role"
             className="rounded border border-line bg-white px-2 py-1.5 text-xs text-charcoal outline-none focus:border-navy"
           >
@@ -76,9 +76,9 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
           >
             {initials(user.name)}
           </div>
-          <div className="hidden text-left leading-tight md:block">
+          <div className="hidden text-left leading-tight xl:block">
             <p className="text-sm font-semibold text-charcoal">{user.name}</p>
-            <p className="text-xs text-gray">{roleLabels[user.role]}</p>
+            <p className="text-xs text-gray">{roleLabels[user.role]} · {municipalityList.find((municipality) => municipality.id === user.municipalityId)?.name}</p>
           </div>
         </div>
 

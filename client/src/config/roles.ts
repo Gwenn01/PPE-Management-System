@@ -1,19 +1,15 @@
-export type Role =
-  | 'administrator'
-  | 'property_officer'
-  | 'accounting_officer'
-  | 'inventory_personnel'
-  | 'approving_officer'
-  | 'auditor'
-
-export const roleList: Role[] = [
+export const roleList = [
   'administrator',
   'property_officer',
   'accounting_officer',
   'inventory_personnel',
   'approving_officer',
   'auditor',
-]
+  'engineering_office',
+  'budget_office',
+] as const
+
+export type Role = (typeof roleList)[number]
 
 export const roleLabels: Record<Role, string> = {
   administrator: 'Administrator',
@@ -22,6 +18,8 @@ export const roleLabels: Record<Role, string> = {
   inventory_personnel: 'Inventory Personnel',
   approving_officer: 'Approving Officer',
   auditor: 'Auditor',
+  engineering_office: 'Engineering Office',
+  budget_office: 'Budget Office',
 }
 
 export const roleResponsibilities: Record<Role, string> = {
@@ -35,9 +33,11 @@ export const roleResponsibilities: Record<Role, string> = {
   approving_officer:
     'Reviews and approves registrations, capitalization, corrections, and lifecycle transactions.',
   auditor: 'Read-only access to records, reports, and audit trails.',
+  engineering_office: 'Prepares and routes construction documents and monitors project technical information.',
+  budget_office: 'Reviews construction funding documents and records budget validation for the municipality.',
 }
 
-// Static sample users, one per role, until the backend provides the real user.
+// Mock identities for navigation previews, not authenticated accounts.
 export const staticUsers: Record<Role, { name: string; email: string }> = {
   administrator: { name: 'Alex Administrator', email: 'admin@example.com' },
   property_officer: { name: 'Pia Property', email: 'property@example.com' },
@@ -45,4 +45,10 @@ export const staticUsers: Record<Role, { name: string; email: string }> = {
   inventory_personnel: { name: 'Ian Inventory', email: 'inventory@example.com' },
   approving_officer: { name: 'Ana Approver', email: 'approver@example.com' },
   auditor: { name: 'Aldo Auditor', email: 'auditor@example.com' },
+  engineering_office: { name: 'Emil Engineering', email: 'engineering@example.com' },
+  budget_office: { name: 'Bea Budget', email: 'budget@example.com' },
+}
+
+export function isRole(value: unknown): value is Role {
+  return typeof value === 'string' && roleList.some((role) => role === value)
 }

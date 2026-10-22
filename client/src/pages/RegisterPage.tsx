@@ -33,8 +33,8 @@ function validate(form: FormState): Errors {
   if (!form.email.trim()) errors.email = 'Enter your email.'
   else if (!/^\S+@\S+\.\S+$/.test(form.email))
     errors.email = 'Enter a valid email address.'
-  if (!form.municipality) errors.municipality = 'Select a municipality.'
-  if (!form.role) errors.role = 'Select a role.'
+  if (!municipalities.some((municipality) => municipality === form.municipality)) errors.municipality = 'Select a municipality.'
+  if (!requestableRoles.includes(form.role)) errors.role = 'Select a role.'
   if (form.password.length < 8)
     errors.password = 'Use at least 8 characters.'
   if (form.confirmPassword !== form.password)
@@ -57,7 +57,7 @@ export default function RegisterPage() {
     setErrors(next)
     if (Object.keys(next).length > 0) return
 
-    // TODO: call the register API (axios) with the form values.
+    // Future phase: submit an account request through a typed mock service.
   }
 
   return (

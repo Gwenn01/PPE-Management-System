@@ -1,47 +1,30 @@
 import { useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import { roleList, staticUsers } from '../config/roles'
 import type { Role } from '../config/roles'
+import type { MunicipalityId } from '../domain/models'
 import { CurrentUserContext } from './CurrentUserContext'
-
-const STORAGE_KEY = 'ppe-dev-role'
-
-function readStoredRole(): Role {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY) as Role | null
-    if (stored && roleList.includes(stored)) return stored
-  } catch {
-    // storage can be unavailable; fall through to the default
-  }
-  return 'administrator'
-}
+import { demoIdentityService } from '../services/demoIdentityService'
 
 /**
- * STATIC placeholder. Replace this provider with the real session/user from
- * the backend once the API is ready. Everything else only reads `user.role`
- * through useCurrentUser(), so the swap stays in this one file.
+ * Demo preview only. Mock session/login integration belongs to a later phase.
  */
 export default function CurrentUserProvider({
   children,
 }: {
   children: ReactNode
 }) {
-  const [role, setRoleState] = useState<Role>(readStoredRole)
-
-  const value = useMemo(
-    () => ({
-      user: { ...staticUsers[role], role },
-      setRole: (next: Role) => {
-        setRoleState(next)
-        try {
-          localStorage.setItem(STORAGE_KEY, next)
-        } catch {
-          // ignore
-        }
-      },
-    }),
-    [role],
-  )
+  const [user, setUser] = useState(() => demoIdentityService.restore())
+  const value = useMemo(() => {
+    const preview = (role: Role, municipalityId: MunicipalityId) => {
+      const result = demoIdentityService.preview(role, municipalityId)
+      if (result.ok) setUser(result.data)
+    }
+    return {
+      user,
+      setRole: (role: Role) => preview(role, user.municipalityId),
+      setMunicipality: (municipalityId: MunicipalityId) => preview(user.role, municipalityId),
+    }
+  }, [user])
 
   return (
     <CurrentUserContext.Provider value={value}>

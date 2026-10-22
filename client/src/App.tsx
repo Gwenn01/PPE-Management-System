@@ -5,9 +5,10 @@ import RegisterPage from './pages/RegisterPage'
 import DashboardLayout from './layouts/DashboardLayout'
 import DashboardHome from './pages/dashboard/DashboardHome'
 import ModulePage from './pages/dashboard/ModulePage'
-import RequireRole from './components/dashboard/RequireRole'
+import RequirePermission from './features/access/RequirePermission'
+import AccessDenied from './features/access/AccessDenied'
 import CurrentUserProvider from './context/CurrentUserProvider'
-import { navItems } from './config/navigation'
+import { dashboardRoute, navItems } from './config/navigation'
 
 function App() {
   return (
@@ -19,7 +20,12 @@ function App() {
           <Route path="/register" element={<RegisterPage />} />
 
           <Route path="/dashboard" element={<DashboardLayout />}>
-            <Route index element={<DashboardHome />} />
+            <Route index element={
+              <RequirePermission permission={dashboardRoute.permission}>
+                <DashboardHome />
+              </RequirePermission>
+            } />
+            <Route path="access-denied" element={<AccessDenied />} />
             {navItems
               .filter((item) => item.path !== '')
               .map((item) => (
@@ -27,9 +33,9 @@ function App() {
                   key={item.path}
                   path={item.path}
                   element={
-                    <RequireRole roles={item.roles}>
+                    <RequirePermission permission={item.permission}>
                       <ModulePage item={item} />
-                    </RequireRole>
+                    </RequirePermission>
                   }
                 />
               ))}

@@ -11,7 +11,7 @@ type SidebarProps = {
 
 export default function Sidebar({ open, onClose }: SidebarProps) {
   const { user } = useCurrentUser()
-  const groups = getNavGroups(user.role)
+  const groups = getNavGroups(user)
 
   return (
     <>

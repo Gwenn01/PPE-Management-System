@@ -24,7 +24,8 @@ import {
   ArrowLeftRight,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import type { Role } from './roles'
+import type { AccessContext, AccessIdentity, PermissionRequirement } from '../domain/permissions.js'
+import { canAccess } from '../domain/permissions.js'
 
 export type NavItem = {
   /** Path under /dashboard. Empty string is the dashboard home. */
@@ -33,33 +34,25 @@ export type NavItem = {
   description: string
   icon: LucideIcon
   group: string
-  roles: Role[]
+  permission: PermissionRequirement
 }
 
-const all: Role[] = [
-  'administrator',
-  'property_officer',
-  'accounting_officer',
-  'inventory_personnel',
-  'approving_officer',
-  'auditor',
-]
-
 /**
- * Single source of truth for the sidebar, the routes, and the role guard.
- * To change who can see a module, edit its `roles` array.
+ * Shared route metadata for sidebar, dashboard cards and permission guards.
+ * Role/action grants live exclusively in domain/permissions.ts.
  * Order here is the order shown in the sidebar.
  */
-export const navItems: NavItem[] = [
-  {
-    path: '',
-    label: 'Dashboard',
-    description: 'Overview of your tasks and modules.',
-    icon: LayoutDashboard,
-    group: 'Overview',
-    roles: all,
-  },
+export const dashboardRoute: NavItem = {
+  path: '',
+  label: 'Dashboard',
+  description: 'Overview of your tasks and modules.',
+  icon: LayoutDashboard,
+  group: 'Overview',
+  permission: { resource: 'dashboard', action: 'read' },
+}
 
+export const navItems: NavItem[] = [
+  dashboardRoute,
   // Administration
   {
     path: 'users',
@@ -67,7 +60,7 @@ export const navItems: NavItem[] = [
     description: 'Create, approve, and manage user accounts.',
     icon: Users,
     group: 'Administration',
-    roles: ['administrator'],
+    permission: { resource: 'users', action: 'read' },
   },
   {
     path: 'departments',
@@ -75,7 +68,7 @@ export const navItems: NavItem[] = [
     description: 'Manage departments and offices.',
     icon: Building2,
     group: 'Administration',
-    roles: ['administrator'],
+    permission: { resource: 'departments', action: 'read' },
   },
   {
     path: 'permissions',
@@ -83,7 +76,7 @@ export const navItems: NavItem[] = [
     description: 'Configure what each role can access and do.',
     icon: KeyRound,
     group: 'Administration',
-    roles: ['administrator'],
+    permission: { resource: 'permissions', action: 'read' },
   },
   {
     path: 'settings',
@@ -91,7 +84,7 @@ export const navItems: NavItem[] = [
     description: 'Configure system-wide settings.',
     icon: Settings,
     group: 'Administration',
-    roles: ['administrator'],
+    permission: { resource: 'settings', action: 'read' },
   },
 
   // Assets
@@ -102,12 +95,15 @@ export const navItems: NavItem[] = [
       'Register and view property, plant, and equipment records.',
     icon: Package,
     group: 'Assets',
-    roles: [
-      'property_officer',
-      'accounting_officer',
-      'inventory_personnel',
-      'auditor',
-    ],
+    permission: { resource: 'assets', action: 'read' },
+  },
+  {
+    path: 'asset-registration',
+    label: 'Asset Registration',
+    description: 'Prepare and submit asset registration requests.',
+    icon: Package,
+    group: 'Assets',
+    permission: { resource: 'asset_registrations', action: 'read' },
   },
   {
     path: 'construction-projects',
@@ -115,7 +111,23 @@ export const navItems: NavItem[] = [
     description: 'Enter and monitor construction in progress.',
     icon: HardHat,
     group: 'Assets',
-    roles: ['property_officer'],
+    permission: { resource: 'construction_projects', action: 'read' },
+  },
+  {
+    path: 'engineering',
+    label: 'Engineering Documents',
+    description: 'Prepare and route construction technical documents.',
+    icon: HardHat,
+    group: 'Engineering',
+    permission: { resource: 'engineering_documents', action: 'read' },
+  },
+  {
+    path: 'budget',
+    label: 'Budget Documents',
+    description: 'Review project funding documents for your municipality.',
+    icon: Landmark,
+    group: 'Budget',
+    permission: { resource: 'budget_documents', action: 'read' },
   },
 
   // Asset lifecycle (Property Officer)
@@ -125,7 +137,7 @@ export const navItems: NavItem[] = [
     description: 'Record differences found during inventory.',
     icon: ClipboardList,
     group: 'Lifecycle Requests',
-    roles: ['property_officer'],
+    permission: { resource: 'inventory_discrepancies', action: 'read' },
   },
   {
     path: 'transfers',
@@ -133,7 +145,7 @@ export const navItems: NavItem[] = [
     description: 'Initiate and track asset transfers.',
     icon: ArrowLeftRight,
     group: 'Lifecycle Requests',
-    roles: ['property_officer'],
+    permission: { resource: 'asset_transfers', action: 'read' },
   },
   {
     path: 'maintenance',
@@ -141,7 +153,7 @@ export const navItems: NavItem[] = [
     description: 'Initiate and track maintenance requests.',
     icon: Wrench,
     group: 'Lifecycle Requests',
-    roles: ['property_officer'],
+    permission: { resource: 'maintenance_requests', action: 'read' },
   },
   {
     path: 'disposal',
@@ -149,7 +161,7 @@ export const navItems: NavItem[] = [
     description: 'Initiate and track disposal requests.',
     icon: Trash2,
     group: 'Lifecycle Requests',
-    roles: ['property_officer'],
+    permission: { resource: 'disposal_requests', action: 'read' },
   },
 
   // Accounting
@@ -159,7 +171,7 @@ export const navItems: NavItem[] = [
     description: 'Confirm asset recognition and cost settings.',
     icon: SlidersHorizontal,
     group: 'Accounting',
-    roles: ['accounting_officer'],
+    permission: { resource: 'recognition', action: 'read' },
   },
   {
     path: 'depreciation',
@@ -167,7 +179,7 @@ export const navItems: NavItem[] = [
     description: 'Calculate and review depreciation.',
     icon: TrendingDown,
     group: 'Accounting',
-    roles: ['accounting_officer'],
+    permission: { resource: 'depreciation', action: 'read' },
   },
   {
     path: 'cip-costs',
@@ -175,7 +187,7 @@ export const navItems: NavItem[] = [
     description: 'Record construction-in-progress costs.',
     icon: Landmark,
     group: 'Accounting',
-    roles: ['accounting_officer'],
+    permission: { resource: 'cip_costs', action: 'read' },
   },
   {
     path: 'disposal-review',
@@ -183,7 +195,7 @@ export const navItems: NavItem[] = [
     description: 'Review the accounting impact of disposals.',
     icon: Calculator,
     group: 'Accounting',
-    roles: ['accounting_officer'],
+    permission: { resource: 'disposal_review', action: 'read' },
   },
   {
     path: 'reconciliation',
@@ -191,7 +203,7 @@ export const navItems: NavItem[] = [
     description: 'Reconcile asset records with the books.',
     icon: Scale,
     group: 'Accounting',
-    roles: ['accounting_officer'],
+    permission: { resource: 'reconciliations', action: 'read' },
   },
 
   // Inventory
@@ -201,7 +213,7 @@ export const navItems: NavItem[] = [
     description: 'Conduct and record physical inventory counts.',
     icon: ClipboardList,
     group: 'Inventory',
-    roles: ['inventory_personnel'],
+    permission: { resource: 'inventory_sessions', action: 'read' },
   },
   {
     path: 'asset-monitoring',
@@ -209,7 +221,7 @@ export const navItems: NavItem[] = [
     description: 'Locate and inspect assets.',
     icon: MapPin,
     group: 'Inventory',
-    roles: ['inventory_personnel'],
+    permission: { resource: 'inventory_checks', action: 'read' },
   },
 
   // Approvals
@@ -219,7 +231,7 @@ export const navItems: NavItem[] = [
     description: 'Review and approve asset registrations.',
     icon: CheckCircle2,
     group: 'Approvals',
-    roles: ['approving_officer'],
+    permission: { resource: 'registration_approvals', action: 'read' },
   },
   {
     path: 'approvals/capitalization',
@@ -227,7 +239,7 @@ export const navItems: NavItem[] = [
     description: 'Review and approve capitalization.',
     icon: FileCheck,
     group: 'Approvals',
-    roles: ['approving_officer'],
+    permission: { resource: 'capitalization_approvals', action: 'read' },
   },
   {
     path: 'approvals/corrections',
@@ -235,7 +247,7 @@ export const navItems: NavItem[] = [
     description: 'Review and approve record corrections.',
     icon: PencilLine,
     group: 'Approvals',
-    roles: ['approving_officer'],
+    permission: { resource: 'correction_approvals', action: 'read' },
   },
   {
     path: 'approvals/lifecycle',
@@ -244,7 +256,7 @@ export const navItems: NavItem[] = [
       'Review and approve transfers, maintenance, and disposals.',
     icon: Repeat,
     group: 'Approvals',
-    roles: ['approving_officer'],
+    permission: { resource: 'lifecycle_approvals', action: 'read' },
   },
 
   // Reports & audit
@@ -254,7 +266,7 @@ export const navItems: NavItem[] = [
     description: 'Generate and view asset and accounting reports.',
     icon: FileText,
     group: 'Reports & Audit',
-    roles: ['accounting_officer', 'approving_officer', 'auditor'],
+    permission: { resource: 'reports', action: 'read' },
   },
   {
     path: 'audit-trail',
@@ -262,16 +274,20 @@ export const navItems: NavItem[] = [
     description: 'View the history of changes and transactions.',
     icon: History,
     group: 'Reports & Audit',
-    roles: ['administrator', 'auditor'],
+    permission: { resource: 'audit_logs', action: 'read' },
   },
 ]
 
 export type NavGroup = { group: string; items: NavItem[] }
 
-export function getNavGroups(role: Role): NavGroup[] {
+export function canAccessRoute(user: AccessIdentity | null, item: NavItem, context: AccessContext): boolean {
+  return canAccess(user, item.permission, context)
+}
+
+export function getNavGroups(user: AccessIdentity, context: AccessContext = user): NavGroup[] {
   const groups: NavGroup[] = []
   for (const item of navItems) {
-    if (!item.roles.includes(role)) continue
+    if (!canAccessRoute(user, item, context)) continue
     const existing = groups.find((g) => g.group === item.group)
     if (existing) existing.items.push(item)
     else groups.push({ group: item.group, items: [item] })

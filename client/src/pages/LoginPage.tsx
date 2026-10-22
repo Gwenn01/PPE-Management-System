@@ -22,8 +22,8 @@ export default function LoginPage() {
     setErrors(next)
     if (Object.keys(next).length > 0) return
 
-    // TODO: call the login API (axios) with { login, password, remember },
-    // then redirect to the dashboard for the user's role and municipality.
+    // Future phase: call a typed mock authentication service with these values,
+    // then open the demo user's municipality-scoped dashboard.
   }
 
   return (

@@ -1,4 +1,5 @@
 import Reveal from './Reveal'
+import { roleLabels, roleList } from '../../config/roles'
 
 const goals = [
   'Improve the accuracy and completeness of PPE records across Zambales municipalities.',
@@ -7,14 +8,7 @@ const goals = [
   'Strengthen accountability through approval workflows and audit trails.',
 ]
 
-const audiences = [
-  'Administrators',
-  'Property Officers',
-  'Accounting Officers',
-  'Inventory Personnel',
-  'Approving Officers',
-  'Auditors',
-]
+const audiences = roleList.map((role) => roleLabels[role])
 
 export default function AboutSection() {
   return (
