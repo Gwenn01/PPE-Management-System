@@ -1,3 +1,4 @@
+const LifecycleModule = lazy(() => import('../../features/lifecycle/LifecycleModule'))
 import { Construction } from 'lucide-react'
 import type { NavItem } from '../../config/navigation'
 import { lazy, Suspense } from 'react'
@@ -15,6 +16,7 @@ const AdministratorModule = lazy(() => import('../../features/administration/Adm
 
 /** Admin destinations are complete; unfinished business modules keep their clear placeholder. */
 export default function ModulePage({ item }: { item: NavItem }) {
+  if (['transfers', 'maintenance', 'disposal', 'disposal-review'].includes(item.path)) return <Suspense fallback={<p role="status">Loading lifecycle management...</p>}><LifecycleModule key={item.path} module={item.path} /></Suspense>
   if (item.path === 'physical-inventory' || item.path === 'asset-monitoring') return <Suspense fallback={<p role="status">Loading inventory...</p>}><InventoryModule /></Suspense>
   if (item.path === 'discrepancies') return <Suspense fallback={<p role="status">Loading investigations...</p>}><DiscrepancyModule /></Suspense>
   if (item.path === 'cip-costs') return <Suspense fallback={<p role="status">Loading CIP accounting...</p>}><CIPModule /></Suspense>

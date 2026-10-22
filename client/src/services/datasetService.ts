@@ -23,6 +23,14 @@ function sameData(a: EntityMap[EntityName], b: EntityMap[EntityName]): boolean {
 async function replaceScope(database: MockDatabase, actor: User, replacement: Dataset, transactionId: string, operation: 'import' | 'reset'): Promise<void> {
   const before = scopeDataset(await database.snapshot(), actor.municipalityId)
   if (operation === 'import') {
+    for (const name of ['transfers', 'maintenance', 'disposals'] as const) {
+      for (const old of before[name]) if (!replacement[name].some(r => r.id === old.id && sameData(r, old))) throw new DataError('conflict', 'Lifecycle requests and history cannot be rewritten by import.')
+      if (replacement[name].some(r => !before[name].some(old => old.id === r.id))) throw new DataError('validation', 'Create lifecycle transactions through Lifecycle Management.')
+    }
+    for (const old of before.approvals.filter(a => ['transfer', 'maintenance', 'disposal'].includes(a.subjectType))) if (!replacement.approvals.some(a => a.id === old.id && sameData(a, old))) throw new DataError('conflict', 'Lifecycle decisions cannot be rewritten by import.')
+    for (const old of before.documents.filter(d => ['transfer', 'maintenance', 'disposal'].includes(d.entityType))) if (!replacement.documents.some(d => d.id === old.id && sameData(d, old))) throw new DataError('conflict', 'Lifecycle evidence cannot be rewritten by import.')
+    const lifecycleAssetIds = new Set([...before.transfers, ...before.maintenance, ...before.disposals].map(r => r.assetId))
+    for (const old of before.assets.filter(a => lifecycleAssetIds.has(a.id))) if (!replacement.assets.some(a => a.id === old.id && sameData(a, old))) throw new DataError('conflict', 'Lifecycle asset changes require authorized completion; import cannot bypass it.')
     for (const name of ['inventorySessions', 'inventoryChecks', 'discrepancies'] as const) {
       for (const old of before[name]) {
         const incoming = replacement[name].find(row => row.id === old.id)

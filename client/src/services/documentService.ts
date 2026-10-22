@@ -15,6 +15,7 @@ import { budgetDocumentTypes } from '../domain/budget.js'
 import { appendBudgetEvent, editableBudgetStatuses } from './budgetValidation.js'
 import type { ProjectDocumentRouting } from '../domain/models.js'
 import { accountingReceipts, assertCIPMutable } from './cipValidation.js'
+import type { LifecycleRequest } from './lifecycleValidation.js'
 
 export const documentLimits = { maxBytes: 5 * 1024 * 1024, mimeTypes: ['application/pdf', 'image/png', 'image/jpeg', 'text/plain'] } as const
 export interface DocumentUpload { fileName: string; file: Blob; entityType: Document['entityType']; entityId: string; documentType?: RegistrationDocumentType; projectDocumentType?: ProjectDocumentType; budgetRoutingId?: string }
@@ -55,6 +56,9 @@ export function createDocumentService(database: MockDatabase) {
           if (attached.some((doc) => doc?.documentType === input.documentType)) throw new DataError('duplicate', 'Replace an existing document of this type by removing it first.')
         }
         if (table === 'discrepancies' && (owner as InventoryDiscrepancy).investigation?.investigatorId !== actor.id) throw new DataError('forbidden', 'Record your investigation before attaching correction evidence.')
+        const lifecycle = ['transfer', 'maintenance', 'disposal'].includes(input.entityType) ? (owner as LifecycleRequest).lifecycle : undefined
+        const maintenanceCompletion = input.entityType === 'maintenance' && lifecycle?.stage === 'in_progress' && owner.workflowStatus === 'approved'
+        if (['transfer', 'maintenance', 'disposal'].includes(input.entityType) && (owner.requestedById !== actor.id || lifecycle && !['draft', 'returned', 'reviewed'].includes(lifecycle.stage) && !maintenanceCompletion)) throw new DataError('forbidden', 'Only the originating Property Officer can attach evidence to an editable lifecycle request or ongoing authorized maintenance.')
         const project = table === 'projects' ? owner as ConstructionProject : null
         const cipUpload = input.projectDocumentType === 'cip_support'
         if (project?.capitalization && ['submitted', 'under_review', 'approved', 'rejected'].includes(project.workflowStatus)) throw new DataError('invalid_transition', 'Capitalization evidence is locked for review or after a final decision.')
@@ -79,11 +83,11 @@ export function createDocumentService(database: MockDatabase) {
           const engineering = ['construction_plan', 'availability_of_fund', 'engineering_report', 'progress_report']
           if ((actor.role === 'budget_office' && !budgetRoute) || (actor.role === 'engineering_office' && (!engineering.includes(input.projectDocumentType) || !['engineering_received', 'processed', 'returned'].includes(project.construction.stage)))) throw new DataError('forbidden', 'This evidence cannot be uploaded at the current processing stage.')
           if (actor.role === 'property_officer' && ['construction_plan', 'availability_of_fund'].includes(input.projectDocumentType) && !['awaiting_proposal', 'proposal_recorded', 'mayor_simulated', 'returned'].includes(project.construction.stage)) throw new DataError('invalid_transition', 'Engineering is processing these documents; replacements require a return.')
-        } else if (!['draft', 'returned'].includes(owner.workflowStatus)) throw new DataError('invalid_transition', 'Attach documents only to draft or returned requests.')
+        } else if (!maintenanceCompletion && !['draft', 'returned'].includes(owner.workflowStatus)) throw new DataError('invalid_transition', 'Attach documents only to draft or returned requests, or ongoing authorized maintenance.')
         const at = new Date().toISOString(), id = crypto.randomUUID()
         const document = parseEntity('documents', { id, municipalityId: actor.municipalityId, version: 1, createdAt: at, updatedAt: at, ...(input.documentType ? { documentType: input.documentType } : {}), ...(input.projectDocumentType ? { projectDocumentType: input.projectDocumentType } : {}), ...(input.budgetRoutingId ? { budgetRoutingId: input.budgetRoutingId } : {}), fileName: input.fileName, mimeType: input.file.type, sizeBytes: input.file.size, uploadedById: actor.id, entityType: input.entityType, entityId: input.entityId, storageKey: `upload:${id}` })
         const construction = project?.construction ? { ...project.construction, ...(input.projectDocumentType === 'construction_plan' ? { constructionReview: 'pending', stage: project.construction.stage === 'processed' ? 'engineering_received' : project.construction.stage } : {}), ...(input.projectDocumentType === 'availability_of_fund' ? { fundReview: 'pending', stage: project.construction.stage === 'processed' ? 'engineering_received' : project.construction.stage } : {}), timeline: [...project.construction.timeline, { id: crypto.randomUUID(), actorId: actor.id, occurredAt: at, action: 'document_uploaded', note: `${input.projectDocumentType}: ${input.fileName}`, documentIds: [document.id], progressPercent: project.construction.progressPercent }] } : undefined
-        const updated = parseEntity(table, { ...owner, ...(construction ? { construction } : {}), documentIds: [...owner.documentIds, document.id], version: owner.version + 1, updatedAt: at })
+        const updated = parseEntity(table, { ...owner, ...(construction ? { construction } : {}), ...(lifecycle ? { lifecycle: { ...lifecycle, ...(input.entityType === 'disposal' ? { review: null, stage: 'draft' } : {}), history: [...lifecycle.history, { id: crypto.randomUUID(), actorId: actor.id, occurredAt: at, action: 'evidence_uploaded', note: input.fileName }] } } : {}), documentIds: [...owner.documentIds, document.id], version: owner.version + 1, updatedAt: at })
         await database.entity('documents').add(document)
         await database.blobs.add({ id: document.storageKey, documentId: document.id, municipalityId: actor.municipalityId, blob: input.file })
         await database.entity(table).put(updated)

@@ -198,11 +198,11 @@ describe('persistent mock data layer', () => {
   })
 
   it('cancels linked approvals consistently and rejects unsupported direct approval transitions', async () => {
-    error(await services.entities.transfers.changeStatus(property, 'botolan-transfer-pump', 1, 'approved', 'Bypass'), 'invalid_transition')
-    const cancelled = success(await services.entities.transfers.changeStatus(property, 'botolan-transfer-pump', 1, 'cancelled', 'Demo withdrawal'))
+    error(await services.entities.transfers.changeStatus(property, 'botolan-transfer-pump', 1, 'approved', 'Bypass'), 'forbidden')
+    const cancelled = success(await services.lifecycle.cancel(property, 'transfer', 'botolan-transfer-pump', 1, 'Demo withdrawal'))
     assert.equal(cancelled.workflowStatus, 'cancelled')
     assert.equal((await db.entity('approvals').get('botolan-approval-transfer'))!.workflowStatus, 'cancelled')
-    error(await services.entities.transfers.submit(property, cancelled.id, cancelled.version), 'invalid_transition')
+    error(await services.lifecycle.submit(property, 'transfer', cancelled.id, cancelled.version), 'invalid_transition')
   })
 
   it('prevents self-approval and stale concurrent approval decisions', async () => {
@@ -210,7 +210,7 @@ describe('persistent mock data layer', () => {
     await db.entity('users').put({ ...user, role: 'approving_officer' }) // Test fixture: requester later changes role.
     error(await services.approvals.changeStatus(await fixtureSession(db, { ...user, role: 'approving_officer' }), 'botolan-approval-registration', 1, 'approved', 'Self'), 'forbidden')
     const results = await Promise.all([
-      services.approvals.changeStatus(approver, 'botolan-approval-transfer', 1, 'approved', 'Approve'),
+      services.approvals.changeStatus(approver, 'botolan-approval-transfer', 1, 'rejected', 'Reject first concurrent decision'),
       services.approvals.changeStatus(approver, 'botolan-approval-transfer', 1, 'rejected', 'Reject'),
     ])
     assert.equal(results.filter((result) => result.ok).length, 1)
@@ -246,7 +246,7 @@ describe('persistent mock data layer', () => {
     const before = await db.snapshot()
     const fail = () => { throw new Error('Simulated quota failure') }
     db.entity('auditLogs').hook('creating', fail)
-    error(await services.entities.transfers.changeStatus(property, 'botolan-transfer-pump', 1, 'cancelled', 'Cannot persist audit'), 'storage_unavailable')
+    error(await services.lifecycle.cancel(property, 'transfer', 'botolan-transfer-pump', 1, 'Cannot persist audit'), 'storage_unavailable')
     db.entity('auditLogs').hook('creating').unsubscribe(fail)
     assert.deepEqual(await db.snapshot(), before)
     db.close()

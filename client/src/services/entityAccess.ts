@@ -21,6 +21,7 @@ export const tableResources: Record<EntityName, Resource> = {
 
 export async function authorizeEntity(database: MockDatabase, context: RequestContext, name: EntityName, action: Action): Promise<User> {
   const resource = action === 'read' && (name === 'departments' || name === 'users') ? 'reference_data'
+    : action === 'read' && name === 'disposals' && context?.actor?.role === 'accounting_officer' ? 'disposal_review'
     : name === 'documentRouting' && context?.actor?.role === 'budget_office' ? 'budget_documents'
     : action === 'read' && (name === 'projects' || name === 'documentRouting') && context?.actor?.role === 'accounting_officer' ? 'cip_costs'
     : name === 'depreciationPolicies' && context?.actor?.role === 'administrator' ? 'settings'
@@ -30,6 +31,7 @@ export async function authorizeEntity(database: MockDatabase, context: RequestCo
 
 export async function visibleRecord<K extends EntityName>(database: MockDatabase, actor: User, name: K, row: EntityMap[K]): Promise<boolean> {
   if (recordMunicipality(name, row) !== actor.municipalityId) return false
+  if (name === 'disposals' && actor.role === 'accounting_officer') return !!(row as EntityMap['disposals']).lifecycle && (row as EntityMap['disposals']).lifecycle!.stage !== 'draft'
   if (name === 'inventorySessions') {
     const session = row as EntityMap['inventorySessions']
     return actor.role === 'inventory_personnel' && (session.requestedById === actor.id || session.assignedUserIds.includes(actor.id))
@@ -90,6 +92,7 @@ export async function visibleRecord<K extends EntityName>(database: MockDatabase
         approval.municipalityId === actor.municipalityId && approval.subjectType === subject && !['draft', 'cancelled'].includes(approval.workflowStatus)).first()
       return !!linked
     }
+    if (document.entityType === 'disposal' && actor.role === 'accounting_officer') return hasGrant('disposal_review') && await visibleRecord(database, actor, 'disposals', target as EntityMap['disposals'])
     if (hasGrant(tableResources[ownerTable])) return true
     return document.entityType === 'registration' && 'recognizedAssetId' in target && target.recognizedAssetId !== null && actor.role === 'auditor' && hasGrant('assets')
   }

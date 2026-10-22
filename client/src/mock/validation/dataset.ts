@@ -10,6 +10,7 @@ import { DataError } from '../../services/errors.js'
 import { datasetSchema, entityNames } from './schemas.js'
 import { upgradeLegacyDataset } from './usernames.js'
 import { inspectionFlags } from '../../domain/inventory.js'
+import { lifecyclePolicySchema } from '../../domain/lifecycle.js'
 
 export const subjectTables = { registration: 'registrations', capitalization: 'projects', correction: 'discrepancies', transfer: 'transfers', maintenance: 'maintenance', disposal: 'disposals', reconciliation: 'reconciliations', project: 'projects', inventory: 'inventorySessions', cip_cost: 'cipCosts' } as const
 
@@ -272,11 +273,30 @@ export function validateDataset(input: unknown): Dataset {
     if (['approved', 'rejected'].includes(row.workflowStatus) !== (row.decidedAt !== null)) throw new DataError('validation', 'Approval decision timestamps must match the workflow state.')
   }
   for (const name of ['registrations', 'discrepancies', 'transfers', 'maintenance', 'disposals', 'reconciliations'] as const) for (const row of data[name]) {
-    if (row.workflowStatus !== 'draft' && !data.approvals.some((approval) => approval.subjectId === row.id)) throw new DataError('validation', 'A submitted or decided request requires its approval record.')
+    const meta = 'lifecycle' in row ? row.lifecycle : undefined
+    const policyAuthorized = meta && meta.approvalRequired === false && meta.authorization?.source === 'configured_policy' && name !== 'disposals' && row.workflowStatus === 'approved'
+    const lifecycleCancelled = ['transfers', 'maintenance', 'disposals'].includes(name) && row.workflowStatus === 'cancelled'
+    if (row.workflowStatus !== 'draft' && !lifecycleCancelled && !policyAuthorized && !data.approvals.some((approval) => approval.subjectId === row.id)) throw new DataError('validation', 'A submitted or decided request requires its approval record.')
+    if (meta) {
+      if (policyAuthorized && (!meta.policy || meta.authorization!.actorId !== row.requestedById || name === 'transfers' && meta.policy.transferRequiresApproval || name === 'maintenance' && (meta.policy.maintenanceApproval === 'always' || meta.policy.maintenanceApproval === 'above_threshold' && 'estimatedCost' in row && row.estimatedCost >= meta.policy.maintenanceThreshold))) throw new DataError('validation', 'The saved demonstration policy must explicitly authorize approval-free processing.')
+      ref('users', meta.baseline.custodianId, row.municipalityId); ref('departments', meta.baseline.departmentId, row.municipalityId)
+      for (const e of meta.history) ref('users', e.actorId, row.municipalityId)
+      if (meta.authorization) ref('users', meta.authorization.actorId, row.municipalityId)
+      if (meta.review) ref('users', meta.review.actorId, row.municipalityId)
+      if (['authorized', 'in_progress', 'completed'].includes(meta.stage) && (row.workflowStatus !== 'approved' || !meta.authorization || !meta.policy)) throw new DataError('validation', 'Lifecycle execution requires retained authorization and policy.')
+      if ((meta.completedAt !== null) !== (meta.stage === 'completed')) throw new DataError('validation', 'Lifecycle completion history and stage disagree.')
+      if (name === 'disposals' && ['reviewed', 'approval', 'authorized', 'completed'].includes(meta.stage) && (!meta.review || meta.approvalRequired !== true)) throw new DataError('validation', 'Disposal requires Accounting review and centralized approval.')
+      if (name === 'disposals' && meta.stage === 'completed') {
+        if (!('disposedAt' in row) || !row.disposedAt || !row.accountingRecordId || ref('assets', row.assetId, row.municipalityId)!.lifecycleStatus !== 'disposed') throw new DataError('validation', 'Completed disposal requires the official retirement and posting.')
+        const postings = data.accountingRecords.filter(e => e.sourceId === row.id && e.kind === 'disposal')
+        if (!postings.length || postings.reduce((sum, e) => sum + BigInt(e.debit) - BigInt(e.credit), 0n) !== 0n) throw new DataError('validation', 'Mock disposal journal must balance.')
+      }
+    }
   }
   for (const row of data.notifications) ref('users', row.recipientId, row.municipalityId)
   for (const row of data.auditLogs) ref('users', row.actorId, row.municipalityId)
   for (const row of data.settings) {
+    if (row.key === 'lifecycle_policy') { try { lifecyclePolicySchema.parse(JSON.parse(String(row.value))) } catch { throw new DataError('validation', 'Invalid lifecycle demonstration policy.') } }
     if (row.key === 'fiscal_year' && (typeof row.value !== 'number' || row.value < 1900 || row.value > 2200)) throw new DataError('validation', 'Demo fiscal year must be an integer between 1900 and 2200.')
     if (row.key === 'registration_document_rules') {
       try { if (typeof row.value !== 'string') throw new Error('Rules must be JSON'); parseRegistrationRules(JSON.parse(row.value)) } catch { throw new DataError('validation', 'Invalid configured registration document requirements.') }

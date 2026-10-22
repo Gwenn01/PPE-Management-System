@@ -1,3 +1,4 @@
+import { createLifecycleService } from './lifecycleService.js'
 import { createInventoryService } from './inventoryService.js'
 import { createAccountingService } from './accountingService.js'
 import { createConstructionService } from './constructionService.js'
@@ -25,6 +26,7 @@ export function createMockDataServices(storage: MockDatabase = database) {
     }),
     entities: createEntityServices(storage),
     inventory: createInventoryService(storage),
+    lifecycle: createLifecycleService(storage),
     construction: createConstructionService(storage),
     budget: createBudgetService(storage),
     cip: createCIPService(storage),

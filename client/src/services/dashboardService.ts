@@ -90,10 +90,10 @@ export function createDashboardService(storage: MockDatabase = database) {
           recordsTitle = 'Registration and lifecycle requests'
           records = [
             ...registrations.map((row) => record(row.id, row.description, 'Asset registration', row.workflowStatus, row.updatedAt)),
-            ...transfers.map((row) => record(row.id, row.reason, 'Asset transfer', row.workflowStatus, row.updatedAt)),
-            ...maintenance.map((row) => record(row.id, row.description, 'Maintenance', row.workflowStatus, row.updatedAt)),
+            ...transfers.map((row) => record(row.id, row.reason, 'Asset transfer', row.lifecycle?.stage ?? row.workflowStatus, row.updatedAt, '/dashboard/transfers')),
+            ...maintenance.map((row) => record(row.id, row.description, 'Maintenance', row.lifecycle?.stage ?? row.workflowStatus, row.updatedAt, '/dashboard/maintenance')),
             ...discrepancies.map((row) => record(row.id, row.description, 'Inventory correction', row.workflowStatus, row.updatedAt)),
-            ...disposals.map((row) => record(row.id, row.reason, 'Disposal', row.workflowStatus, row.updatedAt)),
+            ...disposals.map((row) => record(row.id, row.reason, 'Disposal', row.lifecycle?.stage ?? row.workflowStatus, row.updatedAt, '/dashboard/disposal')),
           ]
           break
         }
@@ -103,7 +103,7 @@ export function createDashboardService(storage: MockDatabase = database) {
           ])
           // Posted CIP account movements are authoritative; costs are not double-counted.
           const cipBalance = sum(entries.filter((row) => row.kind === 'cip' || row.kind === 'capitalization' && row.accountCode === 'DEMO-CIP').map((row) => row.debit - row.credit))
-          const depreciation = sum(entries.filter((row) => row.kind === 'depreciation').map((row) => row.credit - row.debit))
+          const depreciation = sum(entries.filter((row) => row.kind === 'depreciation' || row.kind === 'disposal' && row.accountCode === 'DEMO-ACCUMULATED-DEPRECIATION').map((row) => row.credit - row.debit))
           metrics = [
             count('recognition', 'Assets awaiting recognition', registrations.filter((row) => row.workflowStatus === 'approved' && !row.recognizedAssetId).length, 'Approved registrations not linked to an asset'),
             currency('cip', 'CIP balance', cipBalance, 'Posted CIP debits minus credits'),
@@ -117,6 +117,11 @@ export function createDashboardService(storage: MockDatabase = database) {
             ...entries.map((row) => record(row.id, `${row.kind} · ${row.accountCode}`, 'Posted accounting entry', 'posted', row.postingDate)),
           ]
           const grants = await scoped('permissions')
+          if (grants.some(g => g.role === role && g.resource === 'disposal_review' && g.action === 'read')) {
+            const disposals = (await scoped('disposals')).filter(r => r.lifecycle?.stage === 'accounting_review')
+            metrics.push(count('disposal_review', 'Disposals awaiting Accounting review', disposals.length, 'No asset or ledger changes until review, approval and completion'))
+            records.push(...disposals.map(r => record(r.id, r.reason, 'Disposal accounting review', 'accounting_review', r.updatedAt, '/dashboard/disposal-review')))
+          }
           if (grants.some(g => g.role === role && g.resource === 'cip_costs' && g.action === 'read')) {
             const packets = (await scoped('documentRouting')).filter(r => r.toRole === role && r.assignedUserId === actor.id && !!r.budgetHandoff)
             const projects = await scoped('projects')

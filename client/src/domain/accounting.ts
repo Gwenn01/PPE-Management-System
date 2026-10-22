@@ -14,8 +14,9 @@ export function residualFromPercent(cost: number, percent: number): number {
   return Number((BigInt(cost) * BigInt(Math.round(percent * 100)) + 5000n) / 10000n)
 }
 /** Monthly straight-line demo: full calendar months, depreciation at month end; no daily proration. */
-export function depreciationSchedule(details: RecognitionDetails, asOf: string) {
+export function depreciationSchedule(details: RecognitionDetails, asOf: string, stopDate?: string) {
   calendarDate(asOf); calendarDate(details.startDate)
+  if (stopDate) calendarDate(stopDate)
   if (!['acquisition_month', 'following_month'].includes(details.startConvention) || !['depreciable_ppe', 'non_depreciable_ppe', 'semi_expendable', 'expense'].includes(details.treatment)) throw new Error('Invalid depreciation convention or treatment.')
   const cost = validMoney(details.cost), residual = validMoney(details.residualValue)
   if (residual > cost || !Number.isInteger(details.usefulLifeMonths) || details.usefulLifeMonths < 0 || details.usefulLifeMonths > 1200) throw new Error('Invalid residual value or useful life.')
@@ -28,6 +29,7 @@ export function depreciationSchedule(details: RecognitionDetails, asOf: string) 
   const [year, month] = details.startDate.split('-').map(Number)
   for (let i = 0; depreciable && i < details.usefulLifeMonths; i++) {
     const date = new Date(Date.UTC(year, month - 1 + i + (details.startConvention === 'following_month' ? 1 : 0) + 1, 0)).toISOString().slice(0, 10)
+    if (stopDate && date > stopDate) break
     const cumulative = Number(BigInt(amount) * BigInt(i + 1) / BigInt(details.usefulLifeMonths))
     rows.push({ date, depreciation: cumulative - accumulated, accumulated: cumulative, netBookValue: cost - cumulative })
     accumulated = cumulative

@@ -3,6 +3,7 @@ import type { ConstructionTracking, ProjectDocumentType } from './construction.j
 import type { BudgetHandoff, BudgetProcessing } from './budget.js'
 import type { CapitalizationPreparation, CIPAccounting, ReadyForUse } from './cip.js'
 import type { DiscrepancyInvestigation, InspectionHistory, SessionInventory } from './inventory.js'
+import type { LifecycleDetails } from './lifecycle.js'
 import type { Role } from '../config/roles.js'
 
 export type MunicipalityId = 'botolan' | 'san_antonio'
@@ -49,7 +50,7 @@ export interface AssetCategory extends ScopedEntity {
 }
 
 export interface DemoSetting extends ScopedEntity {
-  key: 'fiscal_year' | 'demo_notice' | 'registration_document_rules'
+  key: 'fiscal_year' | 'demo_notice' | 'registration_document_rules' | 'lifecycle_policy'
   value: string | number | boolean
   isDemo: true
 }
@@ -67,6 +68,7 @@ export interface WorkflowEntity extends ScopedEntity {
 }
 
 export interface Asset extends ScopedEntity {
+  disposedDate?: string
   propertyNumber: string
   description: string
   category: string
@@ -172,6 +174,7 @@ export interface InventoryDiscrepancy extends WorkflowEntity {
 }
 
 export interface AssetTransfer extends WorkflowEntity {
+  lifecycle?: LifecycleDetails
   assetId: EntityId
   fromDepartmentId: EntityId
   toDepartmentId: EntityId
@@ -183,6 +186,7 @@ export interface AssetTransfer extends WorkflowEntity {
 }
 
 export interface MaintenanceRequest extends WorkflowEntity {
+  lifecycle?: LifecycleDetails
   assetId: EntityId
   description: string
   estimatedCost: Money
@@ -192,6 +196,7 @@ export interface MaintenanceRequest extends WorkflowEntity {
 }
 
 export interface DisposalRequest extends WorkflowEntity {
+  lifecycle?: LifecycleDetails
   assetId: EntityId
   reason: string
   method: 'sale' | 'donation' | 'destruction' | 'other'
