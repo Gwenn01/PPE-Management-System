@@ -1,3 +1,4 @@
+import { createReportingService } from './reportingService.js'
 import { createReconciliationService } from './reconciliationService.js'
 import { createLifecycleService } from './lifecycleService.js'
 import { createInventoryService } from './inventoryService.js'
@@ -33,6 +34,7 @@ export function createMockDataServices(storage: MockDatabase = database) {
     budget: createBudgetService(storage),
     cip: createCIPService(storage),
     accountingReports: createAccountingReportService(storage),
+    reporting: createReportingService(storage),
     administration: createAdministratorService(storage),
     registration: createRegistrationService(storage), accounting: createAccountingService(storage),
     approvals: createApprovalManagementService(storage),
@@ -46,3 +48,4 @@ export function createMockDataServices(storage: MockDatabase = database) {
 
 export type MockDataServices = ReturnType<typeof createMockDataServices>
 export const mockDataServices = createMockDataServices()
+
