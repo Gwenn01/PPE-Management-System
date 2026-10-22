@@ -10,6 +10,8 @@ import { recordMunicipality, validateDataset } from './validation/dataset.js'
 export async function authorize(database: MockDatabase, context: RequestContext, resource: Resource, action: Action): Promise<User> {
   if (!context?.actor?.id) throw new DataError('forbidden', 'An active demo identity is required.')
   const actor = await database.entity('users').get(context.actor.id)
+  const session = typeof context.sessionId === 'string' ? await database.sessions.get(context.sessionId) : undefined
+  if (!session || session.userId !== context.actor.id || session.municipalityId !== context.municipalityId || session.role !== actor?.role || !Number.isFinite(Date.parse(session.expiresAt)) || Date.parse(session.expiresAt) <= Date.now()) throw new DataError('forbidden', 'A valid demo session is required. Sign in again.')
   if (!actor || actor.role !== context.actor.role || actor.municipalityId !== context.actor.municipalityId || context.actor.status !== 'active' ||
     !canAccess(actor, { resource, action }, context)) throw new DataError('forbidden', 'This action is unavailable for this role or municipality.')
   const stored = await database.entity('permissions').where('[municipalityId+role]').equals([actor.municipalityId, actor.role]).toArray()

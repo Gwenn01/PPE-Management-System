@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import { Landmark, X } from 'lucide-react'
 import { getNavGroups, hrefFor } from '../../config/navigation'
 import { roleLabels } from '../../config/roles'
-import { useCurrentUser } from '../../hooks/useCurrentUser'
+import { useAuthenticatedUser } from '../../hooks/useAuthenticatedUser'
 
 type SidebarProps = {
   open: boolean
@@ -10,8 +10,8 @@ type SidebarProps = {
 }
 
 export default function Sidebar({ open, onClose }: SidebarProps) {
-  const { user } = useCurrentUser()
-  const groups = getNavGroups(user)
+  const { user, session } = useAuthenticatedUser()
+  const groups = getNavGroups(user, user, session.permissions)
 
   return (
     <>

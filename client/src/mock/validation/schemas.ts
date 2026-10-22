@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { roleList } from '../../config/roles.js'
 import { actions, resources } from '../../domain/permissions.js'
 import type { EntityMap, EntityName } from '../../domain/data.js'
+import { upgradeLegacyDataset } from './usernames.js'
 
 const id = z.string().trim().min(1).max(160)
 const text = z.string().trim().min(1).max(4000)
@@ -10,6 +11,7 @@ const date = z.union([z.iso.date(), z.iso.datetime()])
 const timestamp = z.iso.datetime()
 export const moneySchema = z.number().int().min(0).max(Number.MAX_SAFE_INTEGER)
 export const municipalityIdSchema = z.enum(['botolan', 'san_antonio'])
+export const usernameSchema = z.string().trim().toLowerCase().regex(/^[a-z][a-z0-9._-]{2,63}$/, 'Use 3–64 characters: start with a letter, then letters, numbers, dots, underscores or hyphens.')
 export const workflowStatusSchema = z.enum(['draft', 'submitted', 'under_review', 'returned', 'approved', 'rejected', 'cancelled'])
 const condition = z.enum(['good', 'fair', 'poor', 'unserviceable'])
 const subject = z.enum(['registration', 'capitalization', 'correction', 'transfer', 'maintenance', 'disposal', 'reconciliation'])
@@ -22,7 +24,7 @@ const auditValue = z.union([z.string(), z.number().finite(), z.boolean(), z.null
 export const entitySchemas = {
   municipalities: z.strictObject({ id: municipalityIdSchema, name: z.enum(['Botolan', 'San Antonio']), province: z.literal('Zambales') }),
   departments: z.strictObject({ ...base, code: text, name: text, active: z.boolean() }),
-  users: z.strictObject({ ...base, name: text, email: z.email(), role: z.enum(roleList), departmentId: id.nullable(), status: z.enum(['pending', 'active', 'disabled']), isDemo: z.literal(true) }),
+  users: z.strictObject({ ...base, name: text, username: usernameSchema, email: z.email().toLowerCase(), role: z.enum(roleList), departmentId: id.nullable(), status: z.enum(['pending', 'active', 'disabled']), isDemo: z.literal(true) }),
   permissions: z.strictObject({ ...base, resource: z.enum(resources), action: z.enum(actions), role: z.enum(roleList), scope: z.literal('municipality') }),
   assetCategories: z.strictObject({ ...base, code: text, name: text, usefulLifeMonths: z.number().int().positive().max(1200) }),
   assets: z.strictObject({ ...base, propertyNumber: text, description: text, category: id, departmentId: id, custodianId: id.nullable(), location: text, acquisitionDate: date, acquisitionCost: moneySchema, lifecycleStatus: z.enum(['in_service', 'under_maintenance', 'idle', 'disposed']), condition, registrationId: id, constructionProjectId: id.nullable() }),
@@ -58,7 +60,7 @@ export const datasetSchema = z.strictObject({
   notifications: entitySchemas.notifications.array(), auditLogs: entitySchemas.auditLogs.array(), settings: entitySchemas.settings.array(),
 })
 
-export const envelopeSchema = z.strictObject({ format: z.literal('ppe-demo'), version: z.literal(1), municipalityId: municipalityIdSchema, exportedAt: timestamp, attachmentsIncluded: z.literal(false), data: datasetSchema })
+export const envelopeSchema = z.strictObject({ format: z.literal('ppe-demo'), version: z.literal(1), municipalityId: municipalityIdSchema, exportedAt: timestamp, attachmentsIncluded: z.literal(false), data: z.preprocess(upgradeLegacyDataset, datasetSchema) })
 
 export function parseEntity<K extends EntityName>(name: K, input: unknown): EntityMap[K] {
   // The schema map above is checked against EntityMap; TS cannot preserve a generic indexed union.

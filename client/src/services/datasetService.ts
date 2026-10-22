@@ -35,7 +35,10 @@ async function replaceScope(database: MockDatabase, actor: User, replacement: Da
   const historicalActors = new Set(replacement.auditLogs.map((row) => row.actorId))
   historicalActors.add(actor.id)
   for (const old of before.users) if (historicalActors.has(old.id) && !replacement.users.some((row) => row.id === old.id)) {
-    replacement.users.push({ ...old, name: `${old.name} (archived demo identity)`, email: `archived-${old.id}@example.invalid`, departmentId: null, status: 'disabled' })
+    const prefix = `archived_${old.id.replace(/[^a-z0-9._-]/gi, '_').toLowerCase().slice(0, 45)}`
+    let username = prefix, suffix = 1
+    while (replacement.users.some((user) => user.username === username)) username = `${prefix}_${suffix++}`
+    replacement.users.push({ ...old, username, name: `${old.name} (archived demo identity)`, email: `archived-${old.id}@example.invalid`, departmentId: null, status: 'disabled' })
   }
   for (const name of entityNames) {
     if (name === 'auditLogs') continue
@@ -65,6 +68,8 @@ async function replaceScope(database: MockDatabase, actor: User, replacement: Da
   const stored = await database.blobs.where('municipalityId').equals(actor.municipalityId).toArray()
   for (const file of stored) if (!documents.some((document) => document.storageKey === file.id && document.id === file.documentId && document.mimeType === file.blob.type && document.sizeBytes === file.blob.size)) await database.blobs.delete(file.id)
   const municipality = replacement.municipalities[0]
+  // Replaced identity/policy data must never leave previous sessions active.
+  await database.sessions.where('municipalityId').equals(actor.municipalityId).delete()
   await writeAudit(database, actor, transactionId, 'municipalities', municipality, municipality, operation, `${operation === 'reset' ? 'Explicitly confirmed seed reset' : 'Validated JSON dataset import'} for ${actor.municipalityId}; files are not embedded in JSON.`)
 }
 

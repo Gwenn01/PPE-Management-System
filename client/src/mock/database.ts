@@ -3,6 +3,11 @@ import type { Table } from 'dexie'
 import type { DatabaseState, Dataset, EntityMap, EntityName, StoredBlob } from '../domain/data.js'
 import { entityNames } from './validation/schemas.js'
 import { originalDataset } from './seeds/index.js'
+import type { User } from '../domain/models.js'
+import type { DemoSessionRecord } from '../domain/auth.js'
+import { withLegacyUsernames } from './validation/usernames.js'
+
+export const DATABASE_VERSION = 3
 
 const scoped = 'id, municipalityId'
 export const versionOneSchema: Record<EntityName | 'metadata', string> = {
@@ -29,10 +34,18 @@ export class MockDatabase extends Dexie {
       const state = await table.get('state')
       await table.put({ id: 'state', seedVersion: state?.seedVersion ?? 1, revision: state?.revision ?? 0, schemaVersion: 2 })
     })
+    this.version(3).stores({ users: `${versionOneSchema.users}, &[municipalityId+username]`, sessions: 'id, userId, municipalityId, expiresAt' }).upgrade(async (transaction) => {
+      const users = transaction.table<Omit<User, 'username'> & { username?: string }, string>('users')
+      const current = await users.toArray()
+      await users.bulkPut(withLegacyUsernames(current))
+      const metadata = transaction.table<DatabaseState, string>('metadata')
+      const state = await metadata.get('state')
+      if (state) await metadata.put({ ...state, schemaVersion: DATABASE_VERSION })
+    })
     this.on('populate', async (transaction) => {
       const data = originalDataset()
       for (const name of entityNames) await transaction.table<EntityMap[EntityName], string>(name).bulkAdd(data[name])
-      await transaction.table<DatabaseState, string>('metadata').add({ id: 'state', seedVersion: 1, schemaVersion: 2, revision: 0 })
+      await transaction.table<DatabaseState, string>('metadata').add({ id: 'state', seedVersion: 1, schemaVersion: DATABASE_VERSION, revision: 0 })
     })
     this.on('versionchange', () => this.close())
   }
@@ -40,6 +53,7 @@ export class MockDatabase extends Dexie {
   entity<K extends EntityName>(name: K): Table<EntityMap[K], string> { return this.table(name) }
   get blobs(): Table<StoredBlob, string> { return this.table('blobs') }
   get metadata(): Table<DatabaseState, string> { return this.table('metadata') }
+  get sessions(): Table<DemoSessionRecord, string> { return this.table('sessions') }
 
   async snapshot(): Promise<Dataset> {
     const entries = await Promise.all(entityNames.map(async (name) => [name, await this.entity(name).toArray()] as const))

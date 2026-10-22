@@ -1,13 +1,13 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight, Eye } from 'lucide-react'
 import { getNavGroups, hrefFor } from '../../config/navigation'
-import { isRole, roleLabels, roleList, roleResponsibilities } from '../../config/roles'
-import { useCurrentUser } from '../../hooks/useCurrentUser'
-import { isMunicipalityId, municipalityList } from '../../domain/municipalities'
+import { roleLabels, roleResponsibilities } from '../../config/roles'
+import { useAuthenticatedUser } from '../../hooks/useAuthenticatedUser'
+import DemoAccountSwitcher from '../../features/auth/DemoAccountSwitcher'
 
 export default function DashboardHome() {
-  const { user, setRole, setMunicipality } = useCurrentUser()
-  const groups = getNavGroups(user).filter((g) => g.group !== 'Overview')
+  const { user, session } = useAuthenticatedUser()
+  const groups = getNavGroups(user, user, session.permissions).filter((g) => g.group !== 'Overview')
 
   return (
     <div className="mx-auto max-w-6xl space-y-8">
@@ -15,30 +15,8 @@ export default function DashboardHome() {
         <span className="inline-block rounded-full bg-chip px-3 py-1 text-xs font-semibold text-navy">
           {roleLabels[user.role]}
         </span>
-        <label className="mt-4 flex flex-wrap items-center gap-2 text-xs text-gray">
-          Demo municipality
-          <select
-            value={user.municipalityId}
-            onChange={(event) => {
-              if (isMunicipalityId(event.target.value)) setMunicipality(event.target.value)
-            }}
-            className="rounded border border-line bg-white px-2 py-1.5 text-sm text-charcoal focus:border-navy"
-          >
-            {municipalityList.map((municipality) => (
-              <option key={municipality.id} value={municipality.id}>{municipality.name}</option>
-            ))}
-          </select>
-        </label>
-        <label className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray sm:hidden">
-          Demo role
-          <select
-            value={user.role}
-            onChange={(event) => { if (isRole(event.target.value)) setRole(event.target.value) }}
-            className="max-w-full rounded border border-line bg-white px-2 py-1.5 text-sm text-charcoal focus:border-navy"
-          >
-            {roleList.map((role) => <option key={role} value={role}>{roleLabels[role]}</option>)}
-          </select>
-        </label>
+        <p className="mt-4 text-xs font-semibold text-gray">{session.municipality.name} · DEMO ONLY — not production authentication</p>
+        {import.meta.env.DEV && <div className="mt-3 sm:hidden"><DemoAccountSwitcher /></div>}
         <h2 className="mt-4 text-2xl font-extrabold text-navy sm:text-3xl">
           Welcome, {user.name.split(' ')[0]}.
         </h2>

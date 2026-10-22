@@ -5,6 +5,7 @@ import { validApprovalEvent } from '../../domain/workflow.js'
 import type { WorkflowStatus } from '../../domain/models.js'
 import { DataError } from '../../services/errors.js'
 import { datasetSchema, entityNames } from './schemas.js'
+import { upgradeLegacyDataset } from './usernames.js'
 
 export const subjectTables = { registration: 'registrations', capitalization: 'projects', correction: 'discrepancies', transfer: 'transfers', maintenance: 'maintenance', disposal: 'disposals', reconciliation: 'reconciliations', project: 'projects', inventory: 'inventorySessions', cip_cost: 'cipCosts' } as const
 
@@ -13,11 +14,11 @@ export function recordMunicipality(name: EntityName, record: EntityMap[EntityNam
 }
 
 const uniqueFields: Partial<Record<EntityName, string[]>> = {
-  departments: ['code'], users: ['email'], assetCategories: ['code'], assets: ['propertyNumber'], registrations: ['proposedPropertyNumber'],
+  departments: ['code'], users: ['email', 'username'], assetCategories: ['code'], assets: ['propertyNumber'], registrations: ['proposedPropertyNumber'],
   projects: ['projectNumber'], documents: ['storageKey'], settings: ['key'],
 }
 export function validateDataset(input: unknown): Dataset {
-  const data: Dataset = datasetSchema.parse(input)
+  const data: Dataset = datasetSchema.parse(upgradeLegacyDataset(input))
   const globalIds = new Set<string>()
   for (const name of entityNames) {
     const unique = new Set<string>()

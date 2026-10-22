@@ -1,6 +1,6 @@
 # PPE Management System — Development Progress
 
-Current status: Phases 00, 01 and 02 are complete. Earlier sections below are historical; Phase 02 records the current persistent data layer. The user's actual phase scopes supersede the provisional sequence in the original audit. Mock authentication/session integration and full business modules remain future work.
+Current status: Phases 00–03 are complete. Earlier sections are historical; Phase 03 records the current demo authentication/session behavior. The user's actual phase scopes supersede the provisional sequence in the original audit. Full business modules remain future work.
 
 ## Phase 00 — Project audit and preparation
 
@@ -270,3 +270,61 @@ Tests cover validated seed relationships, all 16 identities, concurrent first cr
 - Dataset replacement retains history and archives missing historical actors, deliberately prioritizing resolvable audit records over reproducing the exact first-run row count. Attachment binaries require separate backup if needed; JSON transfer is explicitly metadata/records only.
 - Whole-dataset validation and broad write transactions are appropriate for this small demo. Large datasets, cross-device synchronization, legal accounting verification and production authentication/audit tamper resistance are not claimed.
 - Next: follow the user's next phase scope. Future module components should call the documented typed services, add narrowly scoped domain transaction commands as their workflows are implemented, and avoid direct IndexedDB or source-JSON access. Full module pages, live dashboard metrics, business execution/postings and formatted reports remain pending.
+
+## Phase 03 — Authentication and registration
+
+Status: complete (2026-10-22). Implemented frontend-only demo login, nullable sessions, account requests/review, logout and authenticated route/data access. Existing authentication layouts, fields, colors, typography, landing page and dashboard shell were preserved. No backend, production authentication or real password recovery was introduced.
+
+### Implemented features and decisions
+
+- Replaced the always-present Administrator/role preview with `user: User | null`, a hydrated AuthSession, explicit loading/authenticated/anonymous/error states and typed login/logout/refresh/switch operations. Old role preferences cannot create a session. The former preview service was removed; the static user factory remains only as a permission-test fixture.
+- Added demo login by case-insensitive current username or email plus municipality. Validates required fields, account existence, the public demo password, Pending/disabled status, assigned department, municipality and loaded central/persisted grants. All 16 seeded identities remain available via an explicitly labeled credentials helper on Login. **The shared public password is `PPE-DEMO-2026`; no personal password is stored.** Login/register pages and the dashboard identify this as DEMO ONLY and do not claim security or production authentication.
+- Remember Me unchecked stores only `{ version: 1, sessionId }` in sessionStorage (maximum 12 hours); checked uses localStorage (maximum 7 days). IndexedDB holds the mock session's user/municipality/role and expiry. Refresh validates the reference and reloads current account/permission data. Invalid, corrupt, expired, disabled/deleted or role-mismatched sessions never restore a default account.
+- Logout immediately clears the rendered identity, revokes the IndexedDB session and removes local/tab references, including obsolete preview keys. Provider revision checks reject stale asynchronous results; the service serializes login/switch/logout so late work cannot undo logout. Focus, storage events, periodic checks and an expiry timer revalidate session state. Restoration failures show retry/clear-session actions while retaining no authenticated user.
+- Added full name, username, email, municipality, active department, requested non-administrator role, demo password/confirmation and fictional-data acknowledgement to registration. Shared Zod schemas serve forms and service validation. Municipality changes clear the department selection. Usernames/emails are case-insensitively unique within a municipality; duplicates and concurrent submissions cannot create two records.
+- A submitted account request is a `users` record with Pending status, not an AssetRegistration. Registration atomically writes that user, its self-submission audit and local Administrator notification; it never creates a session. The requested role is not usable while Pending. Public requests cannot choose Administrator or supply status/identity metadata.
+- Added the minimum Administrator → Users review panel needed to complete this phase: scoped Pending list, applicant/department/role information, search, pagination, loading/error/reload states, approval and reasoned rejection. Only an authenticated local Administrator can review; approval requires an active department and changes status to active, rejection changes it to disabled. Reviews are version-checked and audited. This is account-request review only; broader administration remains future work.
+- Added RequireSession and GuestOnly. Dashboard layout, home, direct child URLs and access-denied view require authentication. RequireRole and RequirePermission delegate to shared authenticated rules, checking role, municipality and loaded permissions before rendering. Unauthenticated visits return to Login with a safe internal dashboard destination; unauthorized authenticated visits go to access denied. Logged-in users visiting Login/Register return to the dashboard.
+- Removed unrestricted role/municipality setters from runtime UI. Development builds offer an explicit switcher for active seeded accounts, rotating the session and loading the chosen account's own municipality/permissions. Production hides that UI and its service rejects switching. No cross-municipality administrator privilege was added.
+- Protected data operations now require `RequestContext.sessionId`; canonical actor/role/scope checks alone no longer permit requests. Disabled users, revoked sessions, invented session IDs and expired references are rejected inside services. Role/status changes revoke affected sessions. Auth notices are displayed in the existing dashboard layout.
+- Added Dexie schema v3: persisted usernames, scoped username uniqueness and technical sessions. Migrations backfill deterministic usernames without reseeding or replacing business records. Seed users now include usernames; legacy JSON envelopes lacking usernames are normalized before validation. Import/reset revokes the affected municipality's sessions and returns the current UI to Login with the committed operation notice. Archive identities get collision-free usernames so seed resets remain possible.
+- Reused field components and added option value/label support, associated error descriptions, form-level announcements, disabled/loading states and clear errors/success notices. Forgot password now explains the public demo password and Administrator-review limitation; no password reset, email or external identity operation is simulated as a real service.
+
+### Changed files
+
+| Files | Purpose |
+| --- | --- |
+| `src/pages/LoginPage.tsx`, `src/pages/RegisterPage.tsx`, `src/components/auth/TextField.tsx`, `src/components/auth/SelectField.tsx` | Working forms, public credential helper, scoped selections, demo notices, validation and accessibility |
+| `src/context/CurrentUserContext.ts`, `src/context/CurrentUserProvider.tsx`, `src/hooks/useAuthenticatedUser.ts` | Nullable/authenticated state, refresh/expiry/logout behavior and scoped request context |
+| `src/domain/auth.ts`, `src/domain/authAccess.ts`, `src/domain/models.ts` | Session/account contracts, lifetimes, shared route decisions, safe return URLs and usernames |
+| `src/features/auth/validation.ts`, `RequireSession.tsx`, `GuestOnly.tsx`, `DemoAccountSwitcher.tsx`, `AccountRequests.tsx` | Shared input validation, guards, development switching and minimal account review |
+| `src/App.tsx`, `src/config/navigation.ts`, `src/components/dashboard/RequireRole.tsx`, `src/features/access/RequirePermission.tsx` | Authentication gates and permission-loaded navigation/direct URL protection |
+| `src/components/dashboard/Sidebar.tsx`, `Topbar.tsx`, `src/layouts/DashboardLayout.tsx`, `src/pages/dashboard/DashboardHome.tsx`, `ModulePage.tsx` | Nullable-state consumers, actual logout, scoped identity display, notices and review entry point |
+| `src/services/authContracts.ts`, `authClient.ts`, `authService.ts`, `contracts.ts`, `errors.ts` | Typed lazy authentication services, registration/review operations, session serialization and structured errors |
+| `src/mock/sessionRepository.ts`, `database.ts`, `unitOfWork.ts`, `demoIdentityRepository.ts`, `seeds/users.json`, `validation/usernames.ts`, `validation/schemas.ts`, `validation/dataset.ts` | Reference storage, schema v3, session authorization, username seeds/migrations/integrity and retired preview implementation |
+| `src/services/demoIdentityService.ts` | Removed the obsolete default-Administrator preview service |
+| `src/services/entityService.ts`, `datasetService.ts`, `mockDataService.ts`, `src/features/data/DemoDataTools.tsx` | Revocation on identity/status/replacement changes, department checks, archive-name compatibility and reauthentication after import/reset |
+| `tests/auth.test.ts`, `tests/architecture.test.ts`, `tests/data.test.ts`, `package.json` | Authentication/access/migration coverage and previous tests updated to supply valid session fixtures |
+| `README.md`, `src/services/README.md`, `DEVELOPMENT_PROGRESS.md` | Demo credentials, usage, scope decisions, API/session contract and phase results |
+
+### Verification
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | PASS: strict application and Vite TypeScript compilation. |
+| `npm run build` | PASS: production build; authentication/data/account-review code is split into appropriate chunks without size warnings. |
+| `npm run lint` | PASS: no errors or warnings; React effect/purity findings encountered during development were corrected. |
+| `npm test` | PASS: 76 tests across eight suites using real Dexie and fake-indexeddb. |
+| `git diff --check` | PASS: no whitespace errors after removing two trailing blank lines. |
+| Browser flow verification | Unavailable: the Browser runtime again reported no browser and discovery returned an empty list. No rendered login/register/approval/keyboard interaction claims are made. |
+
+Test total: 17 retained role/route tests + 30 retained data/migration tests + 29 new authentication/route/migration tests. The three obsolete tests asserting default preview identities were removed because that behavior was explicitly replaced. Current tests cover all 16 logins, email/username normalization, required/invalid credentials, Pending and disabled accounts, options/department/municipality/permission loading, Remember Me modes, persisted refresh, logout/revocation, malformed references, expiry, storage and audit rollback, registration validation/duplicates/concurrency, local-only Administrator approval/rejection, stale reviews, development-only switching, switch/logout races, session-required business calls, safe direct URL decisions, schema migration, legacy import compatibility and reset/archive username collisions.
+
+### Assumptions and remaining scope
+
+- All accounts use one public demo password, including newly approved registrations. This avoids storing personal credentials and intentionally provides no production security. A username/email is unique within its municipality; the same fictional login can exist in both municipalities because Login requires the municipality.
+- Account requests reuse User.status (`pending`, `active`, `disabled`). Rejection is represented by disabled status plus an audited reason; there is no new approval/account-request table or coupling to PPE asset registration.
+- Browser stores cannot share an atomic transaction: if IndexedDB commit fails after the reference write, the reference cannot authorize access because its session row is absent; restoration clears it. Technical expired/revoked references are not exported. Dataset replacements deliberately require reauthentication.
+- The minimal account-review panel is a Phase 03 dependency, not a full Users module. User editing, policy administration and all asset/construction/inventory/lifecycle/accounting/report screens remain for later explicit scopes.
+- The five detailed flowcharts remain unavailable. No future business workflow or legally verified accounting policy was introduced. Browser visual/interaction verification remains outstanding because no browser connection was available.
+- Next required task: follow the user's next phase instructions, reuse authenticated requestContext and typed services, and preserve municipality isolation and the current design.

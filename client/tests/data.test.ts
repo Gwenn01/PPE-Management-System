@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 import { Dexie } from 'dexie'
 import type { Role } from '../src/config/roles.js'
 import { roleList } from '../src/config/roles.js'
-import type { MunicipalityId } from '../src/domain/models.js'
+import type { MunicipalityId, User } from '../src/domain/models.js'
 import type { RequestContext, ServiceResult } from '../src/services/contracts.js'
 import { MockDatabase, versionOneSchema } from '../src/mock/database.js'
 import { originalDataset } from '../src/mock/seeds/index.js'
@@ -24,7 +24,13 @@ function error<T>(result: ServiceResult<T>, code: string) {
   if (!result.ok) assert.equal(result.error.code, code, JSON.stringify(result.error))
 }
 function context(role: Role, municipalityId: MunicipalityId = 'botolan'): RequestContext {
-  return { actor: createDemoUser(role, municipalityId), municipalityId }
+  const actor = createDemoUser(role, municipalityId)
+  return { actor, municipalityId, sessionId: `${actor.id}-test-session` }
+}
+async function fixtureSession(db: MockDatabase, actor: User): Promise<RequestContext> {
+  const sessionId = `${actor.id}-test-session`
+  await db.sessions.put({ id: sessionId, userId: actor.id, municipalityId: actor.municipalityId, role: actor.role, issuedAt: new Date().toISOString(), expiresAt: '2099-01-01T00:00:00.000Z', remember: false })
+  return { actor, municipalityId: actor.municipalityId, sessionId }
 }
 const admin = context('administrator'), property = context('property_officer'), accounting = context('accounting_officer'), approver = context('approving_officer')
 const registrationInput = {
@@ -39,6 +45,7 @@ describe('persistent mock data layer', () => {
     db = new MockDatabase(`ppe-test-${crypto.randomUUID()}`)
     services = createMockDataServices(db)
     success(await services.initialize())
+    for (const actor of await db.entity('users').toArray()) await fixtureSession(db, actor)
   })
   afterEach(async () => { await db.delete() })
 
@@ -192,7 +199,7 @@ describe('persistent mock data layer', () => {
   it('prevents self-approval and stale concurrent approval decisions', async () => {
     const user = (await db.entity('users').get(property.actor.id))!
     await db.entity('users').put({ ...user, role: 'approving_officer' }) // Test fixture: requester later changes role.
-    error(await services.approvals.changeStatus({ actor: { ...user, role: 'approving_officer' }, municipalityId: 'botolan' }, 'botolan-approval-registration', 1, 'approved', 'Self'), 'forbidden')
+    error(await services.approvals.changeStatus(await fixtureSession(db, { ...user, role: 'approving_officer' }), 'botolan-approval-registration', 1, 'approved', 'Self'), 'forbidden')
     const results = await Promise.all([
       services.approvals.changeStatus(approver, 'botolan-approval-transfer', 1, 'approved', 'Approve'),
       services.approvals.changeStatus(approver, 'botolan-approval-transfer', 1, 'rejected', 'Reject'),
@@ -258,6 +265,7 @@ describe('persistent mock data layer', () => {
     const otherAfter = success(await services.dataset.exportJson(context('administrator', 'san_antonio')))
     assert.deepEqual(JSON.parse(otherAfter.json).data, JSON.parse(otherBefore.json).data)
     // A fresh export remains importable even after locally generated audit records.
+    await fixtureSession(db, (await db.entity('users').get(admin.actor.id))!)
     success(await services.dataset.importJson(admin, success(await services.dataset.exportJson(admin)).json))
   })
 
@@ -319,9 +327,9 @@ describe('persistent mock data layer', () => {
   })
 
   it('archives removed historical actors during reset so their audit records remain resolvable', async () => {
-    const pending = success(await services.entities.users.create(admin, { name: 'Fictional Temporary Officer', email: 'temporary@example.com', role: 'property_officer', departmentId: 'botolan-dept-general' }))
+    const pending = success(await services.entities.users.create(admin, { name: 'Fictional Temporary Officer', username: 'temporary_officer', email: 'temporary@example.com', role: 'property_officer', departmentId: 'botolan-dept-general' }))
     const actor = success(await services.users.changeStatus(admin, pending.id, pending.version, 'active'))
-    const request = success(await services.entities.registrations.create({ actor, municipalityId: 'botolan' }, registrationInput))
+    const request = success(await services.entities.registrations.create(await fixtureSession(db, actor), registrationInput))
     const preview = success(await services.dataset.prepareReset(admin))
     success(await services.dataset.reset(admin, { confirmationId: preview.confirmationId, confirmationText: preview.confirmationText }))
     assert.equal(await db.entity('registrations').get(request.id), undefined)
@@ -378,6 +386,7 @@ describe('persistent mock data layer', () => {
     const exportData = success(await services.dataset.exportJson(admin))
     assert.equal(JSON.parse(exportData.json).attachmentsIncluded, false)
     success(await services.dataset.importJson(admin, exportData.json))
+    await fixtureSession(db, (await db.entity('users').get(engineer.actor.id))!)
     assert.equal(await success(await services.documents.download(engineer, document.id)).file.text(), await file.text())
   })
 
@@ -438,7 +447,7 @@ describe('versioned schema migration', () => {
       assert.equal((await upgraded.entity('departments').toArray())[0].name, 'Kept from v1')
       assert.equal(await upgraded.entity('users').count(), 0)
       assert.equal(await upgraded.blobs.count(), 0)
-      assert.deepEqual(await upgraded.metadata.get('state'), { id: 'state', schemaVersion: 2, seedVersion: 1, revision: 7 })
+      assert.deepEqual(await upgraded.metadata.get('state'), { id: 'state', schemaVersion: 3, seedVersion: 1, revision: 7 })
     } finally { await upgraded.delete() }
   })
 })

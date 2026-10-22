@@ -24,7 +24,7 @@ import {
   ArrowLeftRight,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import type { AccessContext, AccessIdentity, PermissionRequirement } from '../domain/permissions.js'
+import type { AccessContext, AccessIdentity, PermissionRequirement, PermissionRule } from '../domain/permissions.js'
 import { canAccess } from '../domain/permissions.js'
 
 export type NavItem = {
@@ -280,14 +280,14 @@ export const navItems: NavItem[] = [
 
 export type NavGroup = { group: string; items: NavItem[] }
 
-export function canAccessRoute(user: AccessIdentity | null, item: NavItem, context: AccessContext): boolean {
-  return canAccess(user, item.permission, context)
+export function canAccessRoute(user: AccessIdentity | null, item: NavItem, context: AccessContext, permissions?: readonly PermissionRule[]): boolean {
+  return canAccess(user, item.permission, context) && (!permissions || permissions.some((rule) => rule.role === user?.role && rule.scope === 'municipality' && rule.resource === item.permission.resource && rule.action === item.permission.action))
 }
 
-export function getNavGroups(user: AccessIdentity, context: AccessContext = user): NavGroup[] {
+export function getNavGroups(user: AccessIdentity, context: AccessContext = user, permissions?: readonly PermissionRule[]): NavGroup[] {
   const groups: NavGroup[] = []
   for (const item of navItems) {
-    if (!canAccessRoute(user, item, context)) continue
+    if (!canAccessRoute(user, item, context, permissions)) continue
     const existing = groups.find((g) => g.group === item.group)
     if (existing) existing.items.push(item)
     else groups.push({ group: item.group, items: [item] })

@@ -8,11 +8,17 @@ Data operations run entirely in the browser through typed, replaceable frontend 
 
 Mock identities support eight internal roles with municipality-specific permissions. Authentication is a demo, and accounting policies are configurable DEMO settings, not legally verified rules. The data services check persisted identity, role, municipality, inputs, versions and allowed transitions; mutations and their audit entries commit atomically.
 
-**Current status (Phase 02):** the existing branded UI has an eight-role, two-municipality preview and a persistent mock data layer with 24 JSON seed files, 406 fictional initial records and 16 demo accounts. Database creation seeds once; refresh/reopen preserves edits. All permissions are municipality-local, including Administrator permissions; there is no cross-municipality override. Select the municipality on dashboard home and the demo role in the topbar (on dashboard home on small screens).
+**Current status (Phase 03):** the existing branded UI has nullable demo authentication, protected dashboard routes, Pending account registration and municipal Administrator review, backed by the persistent mock data layer. Its 24 JSON seed files contain 406 fictional initial records and 16 demo accounts. Database creation seeds once; refresh/reopen preserves edits. All permissions are municipality-local, including Administrator permissions; there is no cross-municipality override.
 
 Administrator → **System Settings** provides JSON export/import and a reset preview with an exact-phrase confirmation dialog. JSON exports omit attachment binaries. Reset restores the current municipality's seeds and removes its uploads while retaining audit history; the other municipality is preserved. Local document metadata and validated Blobs are stored separately in IndexedDB.
 
-Login/registration still do not create sessions or accounts; direct dashboard access defaults to a Botolan Administrator preview. Preview preferences remain in localStorage. Data operations resolve the selected identity against persisted users. Full mock sessions, business module screens, asset recognition/lifecycle execution and accounting calculations remain for their authorized phases. The service foundation supports audited CRUD, request submission, approval status/history and atomic multi-record updates.
+**DEMO ONLY — not secure or production authentication.** Choose Botolan or San Antonio on Login. Use username `administrator` (or `admin@example.com`) with the public password **`PPE-DEMO-2026`**. The Login page's demo-credentials selector fills accounts for all eight roles in both municipalities. Use fictional registration details; every account uses this shared public password and no personal password is stored.
+
+Registration saves a Pending user with a username, email, municipality, department and requested non-administrator role. Sign in as that municipality's Administrator and open **Users** to approve or reject it; Pending and rejected/disabled users cannot sign in. Usernames and emails are case-insensitively unique within a municipality. Forgot password shows a demo limitation; no recovery service or email is sent.
+
+Unchecked Remember Me stores only a session reference in sessionStorage (up to 12 hours); checked uses localStorage (up to 7 days). Refresh validates the reference against IndexedDB, current account status, role, municipality, department and permissions. Logout revokes the session and clears references. Missing/invalid sessions redirect to Login; unauthorized modules show access denied. Import/reset revokes sessions in the affected municipality and requires signing in again. Development builds offer an explicit seeded-account switcher; production builds hide it and reject that operation.
+
+Database schema v3 adds usernames and sessions without reseeding or discarding earlier edits. Legacy JSON exports backfill missing usernames on import. The retired role-preview preferences never create an authenticated session. Full business module screens, asset recognition/lifecycle execution and accounting calculations remain for their authorized phases.
 
 See [the service guide](./src/services/README.md) for typed usage, entity capabilities, schema/migration policy, permission assumptions and transfer/reset limits.
 
@@ -22,10 +28,10 @@ Run from `client/` after dependencies are installed with `npm ci`:
 - `npm run build` — run TypeScript compilation and create a production build.
 - `npm run lint` — run ESLint.
 - `npm run typecheck` — check application and Vite TypeScript projects (application strict mode enabled).
-- `npm test` — compile and run role/access and mock-data tests using Node's built-in runner, real Dexie and fake-indexeddb.
+- `npm test` — compile and run role/access, mock-data and authentication tests using Node's built-in runner, real Dexie and fake-indexeddb.
 - `npm run preview` — preview the production build.
 
-Phase 02 typecheck, build, lint and all 50 tests passed. Tests cover initialization, persistence, CRUD, duplicates, permissions, approval history, transaction rollback, import/export, reset, file storage and migrations. Interactive browser verification was unavailable in this session. See [DEVELOPMENT_PROGRESS.md](./DEVELOPMENT_PROGRESS.md) for the audit, phase results and remaining tasks. Implement only the phase explicitly requested, preserving the existing visual design.
+Phase 03 typecheck, build, lint and all 76 tests passed. Tests cover the prior data/access foundation plus login failures/success, all 16 accounts, pending review, duplicate registration, session restoration/expiry/logout, Remember Me, development switching, authenticated access rules and migration compatibility. Interactive browser verification was unavailable in this session. See [DEVELOPMENT_PROGRESS.md](./DEVELOPMENT_PROGRESS.md) for the audit, phase results and remaining tasks. Implement only the phase explicitly requested, preserving the existing visual design.
 
 ## Original Vite template reference
 

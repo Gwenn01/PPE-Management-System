@@ -10,6 +10,8 @@ import AccessDenied from './features/access/AccessDenied'
 import CurrentUserProvider from './context/CurrentUserProvider'
 import { dashboardRoute, navItems } from './config/navigation'
 import MockDataBoundary from './features/data/MockDataBoundary'
+import RequireSession from './features/auth/RequireSession'
+import GuestOnly from './features/auth/GuestOnly'
 
 function App() {
   return (
@@ -17,10 +19,10 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/login" element={<GuestOnly><LoginPage /></GuestOnly>} />
+          <Route path="/register" element={<GuestOnly><RegisterPage /></GuestOnly>} />
 
-          <Route path="/dashboard" element={<MockDataBoundary><DashboardLayout /></MockDataBoundary>}>
+          <Route path="/dashboard" element={<RequireSession><MockDataBoundary><DashboardLayout /></MockDataBoundary></RequireSession>}>
             <Route index element={
               <RequirePermission permission={dashboardRoute.permission}>
                 <DashboardHome />

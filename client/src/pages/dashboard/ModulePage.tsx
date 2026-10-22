@@ -3,6 +3,7 @@ import type { NavItem } from '../../config/navigation'
 import { lazy, Suspense } from 'react'
 
 const DemoDataTools = lazy(() => import('../../features/data/DemoDataTools'))
+const AccountRequests = lazy(() => import('../../features/auth/AccountRequests'))
 
 /** Existing module shell; System Settings currently exposes Phase 02 demo data tools. */
 export default function ModulePage({ item }: { item: NavItem }) {
@@ -26,7 +27,9 @@ export default function ModulePage({ item }: { item: NavItem }) {
           {item.description}
         </p>
 
-        {item.path === 'settings' ? (
+        {item.path === 'users' ? (
+          <Suspense fallback={<p className="mt-8 text-sm text-gray" role="status">Loading account requests…</p>}><AccountRequests /></Suspense>
+        ) : item.path === 'settings' ? (
           <Suspense fallback={<p className="mt-8 text-sm text-gray" role="status">Loading demo data tools…</p>}>
             <DemoDataTools />
           </Suspense>

@@ -1,63 +1,77 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import AuthLayout from '../components/auth/AuthLayout'
 import TextField from '../components/auth/TextField'
 import SelectField from '../components/auth/SelectField'
-import { municipalities, requestableRoles } from '../data/options'
+import type { AuthOptions } from '../domain/auth'
+import { DEMO_PASSWORD } from '../domain/auth'
+import type { User } from '../domain/models'
+import { roleLabels, roleList } from '../config/roles'
+import { authClient } from '../services/authClient'
+import { fieldErrors, registrationSchema } from '../features/auth/validation'
 
 type FormState = {
   fullName: string
+  username: string
   email: string
-  municipality: string
-  role: string
-  password: string
-  confirmPassword: string
+  municipalityId: string
+  departmentId: string
+  requestedRole: string
+  demoPassword: string
+  confirmDemoPassword: string
+  demoAcknowledged: boolean
 }
 
 type Errors = Partial<Record<keyof FormState, string>>
 
 const initialState: FormState = {
   fullName: '',
+  username: '',
   email: '',
-  municipality: '',
-  role: '',
-  password: '',
-  confirmPassword: '',
-}
-
-function validate(form: FormState): Errors {
-  const errors: Errors = {}
-  if (!form.fullName.trim()) errors.fullName = 'Enter your full name.'
-  if (!form.email.trim()) errors.email = 'Enter your email.'
-  else if (!/^\S+@\S+\.\S+$/.test(form.email))
-    errors.email = 'Enter a valid email address.'
-  if (!municipalities.some((municipality) => municipality === form.municipality)) errors.municipality = 'Select a municipality.'
-  if (!requestableRoles.includes(form.role)) errors.role = 'Select a role.'
-  if (form.password.length < 8)
-    errors.password = 'Use at least 8 characters.'
-  if (form.confirmPassword !== form.password)
-    errors.confirmPassword = 'Passwords do not match.'
-  return errors
+  municipalityId: '',
+  departmentId: '',
+  requestedRole: '',
+  demoPassword: '',
+  confirmDemoPassword: '',
+  demoAcknowledged: false,
 }
 
 export default function RegisterPage() {
   const [form, setForm] = useState<FormState>(initialState)
   const [errors, setErrors] = useState<Errors>({})
+  const [options, setOptions] = useState<AuthOptions | null>(null)
+  const [loadError, setLoadError] = useState('')
+  const [attempt, setAttempt] = useState(0)
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState('')
+  const [registered, setRegistered] = useState<User | null>(null)
+  useEffect(() => {
+    let active = true
+    void authClient.getOptions().then((result) => {
+      if (!active) return
+      setOptions(result.ok ? result.data : null); setLoadError(result.ok ? '' : result.error.message)
+    })
+    return () => { active = false }
+  }, [attempt])
 
   const update =
     (field: keyof FormState) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-      setForm((prev) => ({ ...prev, [field]: e.target.value }))
+      setForm((prev) => ({ ...prev, [field]: e.target.value, ...(field === 'municipalityId' ? { departmentId: '' } : {}) }))
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    const next = validate(form)
-    setErrors(next)
-    if (Object.keys(next).length > 0) return
-
-    // Future phase: submit an account request through a typed mock service.
+    if (busy) return
+    const parsed = registrationSchema.safeParse(form)
+    setErrors(parsed.success ? {} : fieldErrors(parsed.error.issues)); setMessage('')
+    if (!parsed.success) return
+    setBusy(true)
+    const result = await authClient.register(parsed.data)
+    setBusy(false)
+    if (!result.ok) { setErrors(result.error.fields ?? {}); setMessage(result.error.message); return }
+    setRegistered(result.data); setForm(initialState)
   }
 
   return (
@@ -66,19 +80,29 @@ export default function RegisterPage() {
       blurb="Register to start recording, approving, and reporting on local government assets. Your role and access are confirmed by an administrator."
     >
       <h1 className="text-2xl font-bold text-charcoal">Sign up</h1>
+      <p className="mt-4 rounded-lg border border-line bg-mist p-3 text-xs leading-5 text-charcoal"><strong className="text-navy">DEMO ONLY.</strong> Use fictional names and emails. Every demo account uses the public password <code className="font-semibold">{DEMO_PASSWORD}</code>. No personal passwords are stored. This is not production authentication.</p>
+      {!options && !loadError && <p className="mt-4 text-sm text-gray" role="status">Loading municipalities and departments…</p>}
+      {loadError && <p className="mt-4 text-sm text-red-700" role="alert">{loadError} <button type="button" className="font-semibold text-navy underline" onClick={() => { setLoadError(''); setAttempt((value) => value + 1) }}>Retry</button></p>}
 
-      <form onSubmit={handleSubmit} noValidate className="mt-8">
+      {registered ? <section className="mt-8 rounded-xl border border-line bg-mist p-5" role="status">
+        <h2 className="font-bold text-navy">Account request saved — Pending</h2>
+        <p className="mt-3 text-sm leading-6 text-charcoal">Your request for <strong>{registered.username}</strong> is stored in this browser. A {registered.municipalityId === 'botolan' ? 'Botolan' : 'San Antonio'} Administrator must approve it in Users before you can sign in. No session was created.</p>
+        <Link to="/login" className="mt-4 inline-block rounded-full bg-navy px-6 py-2 text-sm font-semibold text-white">Return to sign in</Link>
+        <button type="button" className="mt-3 block text-sm font-semibold text-navy underline" onClick={() => setRegistered(null)}>Submit another fictional request</button>
+      </section> : <form onSubmit={(event) => { void handleSubmit(event) }} noValidate className="mt-8" aria-busy={busy}>
+        <fieldset disabled={busy || !options}>
         <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2">
           <TextField
             wrapperClassName="sm:col-span-2"
             label="Full name"
             name="fullName"
             autoComplete="name"
-            placeholder="Juan Dela Cruz"
+            placeholder="Fictional Municipal Officer"
             value={form.fullName}
             onChange={update('fullName')}
             error={errors.fullName}
           />
+          <TextField wrapperClassName="sm:col-span-2" label="Username" name="username" autoComplete="username" placeholder="demo.officer" value={form.username} onChange={update('username')} error={errors.username} />
           <TextField
             wrapperClassName="sm:col-span-2"
             label="Email"
@@ -92,43 +116,48 @@ export default function RegisterPage() {
           />
           <SelectField
             label="Municipality"
-            name="municipality"
+            name="municipalityId"
             placeholder="Select municipality"
-            options={municipalities}
-            value={form.municipality}
-            onChange={update('municipality')}
-            error={errors.municipality}
+            options={options?.municipalities.map((municipality) => ({ value: municipality.id, label: municipality.name })) ?? []}
+            value={form.municipalityId}
+            onChange={update('municipalityId')}
+            error={errors.municipalityId}
           />
+          <SelectField label="Department" name="departmentId" placeholder="Select department" disabled={!form.municipalityId} options={options?.departments.filter((department) => department.municipalityId === form.municipalityId).map((department) => ({ value: department.id, label: department.name })) ?? []} value={form.departmentId} onChange={update('departmentId')} error={errors.departmentId} />
           <SelectField
-            label="Role"
-            name="role"
+            label="Requested role"
+            name="requestedRole"
             placeholder="Select role"
-            options={requestableRoles}
-            value={form.role}
-            onChange={update('role')}
-            error={errors.role}
+            options={roleList.filter((role) => role !== 'administrator').map((role) => ({ value: role, label: roleLabels[role] }))}
+            value={form.requestedRole}
+            onChange={update('requestedRole')}
+            error={errors.requestedRole}
           />
           <TextField
-            label="Password"
-            name="password"
+            label="Demo password"
+            name="demoPassword"
             type="password"
-            autoComplete="new-password"
-            placeholder="At least 8 characters"
-            value={form.password}
-            onChange={update('password')}
-            error={errors.password}
+            autoComplete="off"
+            placeholder={DEMO_PASSWORD}
+            value={form.demoPassword}
+            onChange={update('demoPassword')}
+            error={errors.demoPassword}
           />
           <TextField
-            label="Confirm password"
-            name="confirmPassword"
+            label="Confirm demo password"
+            name="confirmDemoPassword"
             type="password"
-            autoComplete="new-password"
-            placeholder="Repeat your password"
-            value={form.confirmPassword}
-            onChange={update('confirmPassword')}
-            error={errors.confirmPassword}
+            autoComplete="off"
+            placeholder="Repeat the public demo password"
+            value={form.confirmDemoPassword}
+            onChange={update('confirmDemoPassword')}
+            error={errors.confirmDemoPassword}
           />
         </div>
+        <label className="mt-6 flex items-start gap-2 text-xs leading-5 text-charcoal"><input type="checkbox" checked={form.demoAcknowledged} onChange={(event) => setForm((previous) => ({ ...previous, demoAcknowledged: event.target.checked }))} className="mt-1 accent-navy" aria-describedby={errors.demoAcknowledged ? 'demo-ack-error' : undefined} aria-invalid={!!errors.demoAcknowledged} />I am using fictional details and understand this is a frontend-only demo.</label>
+        {errors.demoAcknowledged && <p id="demo-ack-error" className="mt-1 text-xs text-red-700">{errors.demoAcknowledged}</p>}
+        {message && <p className="mt-4 text-sm text-red-700" role="alert">{message}</p>}
+        {!message && Object.keys(errors).length > 0 && <p className="mt-4 text-sm text-red-700" role="alert">Review the highlighted fields before submitting.</p>}
 
         <div className="mt-8 flex items-center justify-between gap-4">
           <p className="text-sm text-charcoal">
@@ -144,11 +173,12 @@ export default function RegisterPage() {
             type="submit"
             className="flex items-center gap-3 rounded-full bg-navy px-8 py-3 text-sm font-semibold text-white transition-colors hover:bg-navy-dark"
           >
-            Sign up
+            {busy ? 'Submitting…' : 'Request account'}
             <ArrowRight className="h-4 w-4" />
           </button>
         </div>
-      </form>
+        </fieldset>
+      </form>}
 
       <p className="mt-10 border-t border-line pt-5 text-center text-xs leading-5 text-gray">
         Authorized municipal personnel only. Access to records depends on your

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useCurrentUser } from '../../hooks/useCurrentUser'
+import { useAuthenticatedUser } from '../../hooks/useAuthenticatedUser'
 import { municipalityList } from '../../domain/municipalities'
 import type { ServiceResult } from '../../services/contracts'
 import type { ResetChallenge } from '../../services/dataContracts'
@@ -15,8 +15,7 @@ function unwrap<T>(result: ServiceResult<T>): T {
 }
 
 export default function DemoDataTools() {
-  const { user } = useCurrentUser()
-  const context = { actor: user, municipalityId: user.municipalityId }
+  const { user, requestContext: context, logout } = useAuthenticatedUser()
   const municipality = municipalityList.find((item) => item.id === user.municipalityId)!.name
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState('')
@@ -69,6 +68,7 @@ export default function DemoDataTools() {
           <button type="button" disabled={!file || !replaceConfirmed} className={button} onClick={() => { void run(async () => {
             if (!file || file.size > datasetLimits.maxJsonBytes) throw new Error('Choose a JSON file up to 10 MiB.')
             const imported = unwrap(await mockDataServices.dataset.importJson(context, await file.text()))
+            await logout(`Imported ${imported.imported} demo records. Sign in again after replacing identity data.`)
             setFile(null); setReplaceConfirmed(false)
             if (fileInput.current) fileInput.current.value = ''
             return `Imported ${imported.imported} ${municipality} records. Existing audit history was retained.`
@@ -95,6 +95,7 @@ export default function DemoDataTools() {
             <button type="button" disabled={busy} className="rounded-lg border border-line px-4 py-2 text-sm" onClick={() => { setChallenge(null); setError('') }}>Cancel</button>
             <button type="button" disabled={busy || confirmationText !== challenge.confirmationText} className={button} onClick={() => { void run(async () => {
               const restored = unwrap(await mockDataServices.dataset.reset(context, { confirmationId: challenge.confirmationId, confirmationText }))
+              await logout(`Restored ${restored.restored} demo seed records. Sign in again after the reset.`)
               setChallenge(null); setConfirmationText('')
               return `Restored ${restored.restored} ${municipality} seed records. Audit history was retained.`
             }) }}>{busy ? 'Resetting…' : 'Reset demo records'}</button>

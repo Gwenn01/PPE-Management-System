@@ -7,9 +7,7 @@ import { actions, canAccess, hasRolePermission, permissionRules, resources } fro
 import type { Action, PermissionRequirement } from '../src/domain/permissions.js'
 import type { AssetLifecycleStatus, MunicipalityId, WorkflowStatus } from '../src/domain/models.js'
 import { municipalityList } from '../src/domain/municipalities.js'
-import { createDemoUser, demoPreferenceKeys } from '../src/mock/demoIdentityRepository.js'
-import type { PreferenceStore } from '../src/mock/demoIdentityRepository.js'
-import { createDemoIdentityService } from '../src/services/demoIdentityService.js'
+import { createDemoUser } from '../src/mock/demoIdentityRepository.js'
 
 const local = { municipalityId: 'botolan' } as const
 const other = { municipalityId: 'san_antonio' } as const
@@ -150,39 +148,6 @@ describe('route metadata, sidebar and guard rules', () => {
     assert.deepEqual(getNavGroups(user, other), [])
     assert.deepEqual(getNavGroups({ ...user, status: 'disabled' }), [])
     for (const item of navItems) assert.equal(canAccessRoute(null, item, local), false)
-  })
-})
-
-describe('typed demo identity boundary and preference compatibility', () => {
-  it('restores legacy role preferences and persists scoped preview choices', () => {
-    const values = new Map<string, string>([[demoPreferenceKeys.role, 'auditor']])
-    const service = createDemoIdentityService({ getItem: (key) => values.get(key) ?? null, setItem: (key, value) => { values.set(key, value) } })
-    assert.equal(service.restore().role, 'auditor')
-    assert.equal(service.restore().municipalityId, 'botolan')
-    const result = service.preview('engineering_office', 'san_antonio')
-    assert.equal(result.ok, true)
-    assert.equal(service.restore().role, 'engineering_office')
-    assert.equal(service.restore().municipalityId, 'san_antonio')
-    assert.deepEqual([...values.keys()].sort(), Object.values(demoPreferenceKeys).sort())
-  })
-
-  it('rejects invalid runtime selections before writing preferences', () => {
-    let writes = 0
-    const service = createDemoIdentityService({ getItem: () => null, setItem: () => { writes++ } })
-    assert.equal(service.preview('owner' as Role, 'botolan').ok, false)
-    assert.equal(service.preview('administrator', 'unknown' as MunicipalityId).ok, false)
-    assert.equal(writes, 0)
-  })
-
-  it('handles corrupt preferences and unavailable browser storage without crashing', () => {
-    const corrupt = createDemoIdentityService({ getItem: () => '__proto__', setItem: () => {} })
-    assert.equal(corrupt.restore().role, 'administrator')
-    assert.equal(corrupt.restore().municipalityId, 'botolan')
-    const unavailable: PreferenceStore = { getItem: () => { throw new Error('blocked') }, setItem: () => { throw new Error('blocked') } }
-    const service = createDemoIdentityService(unavailable)
-    assert.equal(service.restore().role, 'administrator')
-    assert.equal(service.preview('budget_office', 'san_antonio').ok, true)
-    assert.equal(createDemoIdentityService().restore().isDemo, true)
   })
 })
 

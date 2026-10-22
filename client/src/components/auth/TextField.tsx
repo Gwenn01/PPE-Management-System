@@ -32,6 +32,7 @@ export default function TextField({
           id={id}
           type={isPassword && visible ? 'text' : type}
           aria-invalid={Boolean(error)}
+          aria-describedby={error ? `${id}-error` : undefined}
           className={`w-full border-b bg-transparent py-2 pr-8 text-[15px] text-charcoal outline-none transition-colors placeholder:text-gray/60 focus:border-navy ${
             error ? 'border-red-600' : 'border-line'
           }`}
@@ -52,7 +53,7 @@ export default function TextField({
           </button>
         )}
       </div>
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      {error && <p id={`${id}-error`} className="mt-1 text-xs text-red-600">{error}</p>}
     </div>
   )
 }

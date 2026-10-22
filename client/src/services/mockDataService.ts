@@ -1,4 +1,4 @@
-import { database } from '../mock/database.js'
+import { database, DATABASE_VERSION } from '../mock/database.js'
 import type { MockDatabase } from '../mock/database.js'
 import { createDatasetService } from './datasetService.js'
 import { createDocumentService } from './documentService.js'
@@ -11,7 +11,7 @@ export function createMockDataServices(storage: MockDatabase = database) {
     initialize: () => respond(async () => {
       await storage.open()
       const state = await storage.metadata.get('state')
-      if (!state || state.schemaVersion !== 2) throw new DataError('storage_unavailable', 'Database metadata is missing or incompatible. Existing records were not overwritten.')
+      if (!state || state.schemaVersion !== DATABASE_VERSION) throw new DataError('storage_unavailable', 'Database metadata is missing or incompatible. Existing records were not overwritten.')
       return { schemaVersion: storage.verno }
     }),
     entities: createEntityServices(storage),

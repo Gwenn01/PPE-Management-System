@@ -67,6 +67,7 @@ export async function applyUpdate<K extends WritableEntity>(database: MockDataba
   editableWorkflow(old, actor, name)
   const record = parseEntity(name, { ...old, ...inputFields(changes), version: old.version + 1, updatedAt: new Date().toISOString() })
   await entityRepository(database, name).update(record)
+  if (name === 'users' && 'role' in old && 'role' in record && old.role !== record.role) await database.sessions.where('userId').equals(record.id).delete()
   await writeAudit(database, actor, transactionId, name, old, record, 'update')
   return record
 }
@@ -202,9 +203,14 @@ export function createIdentityStatusService(database: MockDatabase) {
     const actor = await authorize(database, context, 'users', 'manage')
     const old = await scopedRecord(database, actor, 'users', recordId.parse(id))
     checkVersion(old, version)
+    if (old.status === 'pending' && status === 'active') {
+      const department = old.departmentId ? await database.entity('departments').get(old.departmentId) : undefined
+      if (!department?.active || department.municipalityId !== old.municipalityId) throw new DataError('validation', 'Activate the requested department before approving this account.')
+    }
     const row = parseEntity('users', { ...old, status: z.enum(['pending', 'active', 'disabled']).parse(status), version: old.version + 1, updatedAt: new Date().toISOString() })
     await database.entity('users').put(row)
-    await writeAudit(database, actor, transactionId, 'users', old, row, 'changeStatus')
+    await database.sessions.where('userId').equals(row.id).delete()
+    await writeAudit(database, actor, transactionId, 'users', old, row, old.status === 'pending' && status === 'active' ? 'approve_account' : 'changeStatus')
     return row
   }))
 }

@@ -10,7 +10,8 @@
     "role": "administrator",
     "departmentId": "botolan-dept-general",
     "status": "active",
-    "isDemo": true
+    "isDemo": true,
+    "username": "administrator"
   },
   {
     "id": "demo-botolan-property_officer",
@@ -23,7 +24,8 @@
     "role": "property_officer",
     "departmentId": "botolan-dept-general",
     "status": "active",
-    "isDemo": true
+    "isDemo": true,
+    "username": "property_officer"
   },
   {
     "id": "demo-botolan-accounting_officer",
@@ -36,7 +38,8 @@
     "role": "accounting_officer",
     "departmentId": "botolan-dept-accounting",
     "status": "active",
-    "isDemo": true
+    "isDemo": true,
+    "username": "accounting_officer"
   },
   {
     "id": "demo-botolan-inventory_personnel",
@@ -49,7 +52,8 @@
     "role": "inventory_personnel",
     "departmentId": "botolan-dept-general",
     "status": "active",
-    "isDemo": true
+    "isDemo": true,
+    "username": "inventory_personnel"
   },
   {
     "id": "demo-botolan-approving_officer",
@@ -62,7 +66,8 @@
     "role": "approving_officer",
     "departmentId": "botolan-dept-general",
     "status": "active",
-    "isDemo": true
+    "isDemo": true,
+    "username": "approving_officer"
   },
   {
     "id": "demo-botolan-auditor",
@@ -75,7 +80,8 @@
     "role": "auditor",
     "departmentId": "botolan-dept-general",
     "status": "active",
-    "isDemo": true
+    "isDemo": true,
+    "username": "auditor"
   },
   {
     "id": "demo-botolan-engineering_office",
@@ -88,7 +94,8 @@
     "role": "engineering_office",
     "departmentId": "botolan-dept-engineering",
     "status": "active",
-    "isDemo": true
+    "isDemo": true,
+    "username": "engineering_office"
   },
   {
     "id": "demo-botolan-budget_office",
@@ -101,7 +108,8 @@
     "role": "budget_office",
     "departmentId": "botolan-dept-budget",
     "status": "active",
-    "isDemo": true
+    "isDemo": true,
+    "username": "budget_office"
   },
   {
     "id": "demo-san_antonio-administrator",
@@ -114,7 +122,8 @@
     "role": "administrator",
     "departmentId": "san_antonio-dept-general",
     "status": "active",
-    "isDemo": true
+    "isDemo": true,
+    "username": "administrator"
   },
   {
     "id": "demo-san_antonio-property_officer",
@@ -127,7 +136,8 @@
     "role": "property_officer",
     "departmentId": "san_antonio-dept-general",
     "status": "active",
-    "isDemo": true
+    "isDemo": true,
+    "username": "property_officer"
   },
   {
     "id": "demo-san_antonio-accounting_officer",
@@ -140,7 +150,8 @@
     "role": "accounting_officer",
     "departmentId": "san_antonio-dept-accounting",
     "status": "active",
-    "isDemo": true
+    "isDemo": true,
+    "username": "accounting_officer"
   },
   {
     "id": "demo-san_antonio-inventory_personnel",
@@ -153,7 +164,8 @@
     "role": "inventory_personnel",
     "departmentId": "san_antonio-dept-general",
     "status": "active",
-    "isDemo": true
+    "isDemo": true,
+    "username": "inventory_personnel"
   },
   {
     "id": "demo-san_antonio-approving_officer",
@@ -166,7 +178,8 @@
     "role": "approving_officer",
     "departmentId": "san_antonio-dept-general",
     "status": "active",
-    "isDemo": true
+    "isDemo": true,
+    "username": "approving_officer"
   },
   {
     "id": "demo-san_antonio-auditor",
@@ -179,7 +192,8 @@
     "role": "auditor",
     "departmentId": "san_antonio-dept-general",
     "status": "active",
-    "isDemo": true
+    "isDemo": true,
+    "username": "auditor"
   },
   {
     "id": "demo-san_antonio-engineering_office",
@@ -192,7 +206,8 @@
     "role": "engineering_office",
     "departmentId": "san_antonio-dept-engineering",
     "status": "active",
-    "isDemo": true
+    "isDemo": true,
+    "username": "engineering_office"
   },
   {
     "id": "demo-san_antonio-budget_office",
@@ -205,6 +220,7 @@
     "role": "budget_office",
     "departmentId": "san_antonio-dept-budget",
     "status": "active",
-    "isDemo": true
+    "isDemo": true,
+    "username": "budget_office"
   }
 ]

@@ -1,9 +1,9 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { LogOut, Menu } from 'lucide-react'
 import { navItems } from '../../config/navigation'
-import { isRole, roleLabels, roleList } from '../../config/roles'
-import { municipalityList } from '../../domain/municipalities'
-import { useCurrentUser } from '../../hooks/useCurrentUser'
+import { roleLabels } from '../../config/roles'
+import { useAuthenticatedUser } from '../../hooks/useAuthenticatedUser'
+import DemoAccountSwitcher from '../../features/auth/DemoAccountSwitcher'
 
 type TopbarProps = {
   onMenuClick: () => void
@@ -19,7 +19,7 @@ function initials(name: string) {
 }
 
 export default function Topbar({ onMenuClick }: TopbarProps) {
-  const { user, setRole } = useCurrentUser()
+  const { user, session, logout } = useAuthenticatedUser()
   const { pathname } = useLocation()
   const navigate = useNavigate()
 
@@ -28,9 +28,9 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
     return href === pathname
   })
 
-  const handleLogout = () => {
-    // Navigation only during role preview. Mock session integration is a later phase.
-    navigate('/login')
+  const handleLogout = async () => {
+    await logout()
+    navigate('/login', { replace: true })
   }
 
   return (
@@ -50,24 +50,8 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
       </div>
 
       <div className="flex items-center gap-3 sm:gap-4">
-        {/* Explicit demo preview, not authenticated role switching. */}
-        <label className="hidden items-center gap-2 text-xs text-gray sm:flex">
-          <span className="rounded bg-chip px-2 py-0.5 font-semibold uppercase tracking-wide">
-            Demo
-          </span>
-          <select
-            value={user.role}
-            onChange={(e) => { if (isRole(e.target.value)) setRole(e.target.value) }}
-            aria-label="Preview as role"
-            className="rounded border border-line bg-white px-2 py-1.5 text-xs text-charcoal outline-none focus:border-navy"
-          >
-            {roleList.map((role) => (
-              <option key={role} value={role}>
-                {roleLabels[role]}
-              </option>
-            ))}
-          </select>
-        </label>
+        {import.meta.env.DEV && <div className="hidden sm:block"><DemoAccountSwitcher /></div>}
+        <span className="hidden rounded bg-chip px-2 py-0.5 text-[10px] font-semibold text-navy sm:inline">DEMO ONLY</span>
 
         <div className="flex items-center gap-3">
           <div
@@ -78,22 +62,19 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
           </div>
           <div className="hidden text-left leading-tight xl:block">
             <p className="text-sm font-semibold text-charcoal">{user.name}</p>
-            <p className="text-xs text-gray">{roleLabels[user.role]} · {municipalityList.find((municipality) => municipality.id === user.municipalityId)?.name}</p>
+            <p className="text-xs text-gray">{roleLabels[user.role]} · {session.municipality.name}</p>
           </div>
         </div>
 
-        <Link
-          to="/login"
-          onClick={(e) => {
-            e.preventDefault()
-            handleLogout()
-          }}
+        <button
+          type="button"
+          onClick={() => { void handleLogout() }}
           aria-label="Log out"
           title="Log out"
           className="rounded p-2 text-gray transition-colors hover:bg-mist hover:text-navy"
         >
           <LogOut className="h-5 w-5" />
-        </Link>
+        </button>
       </div>
     </header>
   )

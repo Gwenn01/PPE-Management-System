@@ -23,6 +23,7 @@ export interface ScopedEntity {
 
 export interface User extends ScopedEntity {
   name: string
+  username: string
   email: string
   role: Role
   departmentId: EntityId | null
