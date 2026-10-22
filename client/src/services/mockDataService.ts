@@ -1,4 +1,6 @@
 import { createAccountingService } from './accountingService.js'
+import { createConstructionService } from './constructionService.js'
+import { createBudgetService } from './budgetService.js'
 import { createRegistrationService } from './registrationService.js'
 import { createApprovalManagementService } from './approvalService.js'
 import { createAdministratorService } from './administratorService.js'
@@ -19,6 +21,8 @@ export function createMockDataServices(storage: MockDatabase = database) {
       return { schemaVersion: storage.verno }
     }),
     entities: createEntityServices(storage),
+    construction: createConstructionService(storage),
+    budget: createBudgetService(storage),
     administration: createAdministratorService(storage),
     registration: createRegistrationService(storage), accounting: createAccountingService(storage),
     approvals: createApprovalManagementService(storage),

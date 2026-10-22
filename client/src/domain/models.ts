@@ -1,4 +1,6 @@
 import type { RegistrationDocumentType } from './registration.js'
+import type { ConstructionTracking, ProjectDocumentType } from './construction.js'
+import type { BudgetHandoff, BudgetProcessing } from './budget.js'
 import type { Role } from '../config/roles.js'
 
 export type MunicipalityId = 'botolan' | 'san_antonio'
@@ -93,6 +95,7 @@ export interface AssetRegistration extends WorkflowEntity {
 }
 
 export interface ConstructionProject extends WorkflowEntity {
+  construction?: ConstructionTracking
   projectNumber: string
   name: string
   location: string
@@ -105,6 +108,10 @@ export interface ConstructionProject extends WorkflowEntity {
 }
 
 export interface ProjectDocumentRouting extends WorkflowEntity {
+  budgetProcessing?: BudgetProcessing
+  /** Immutable link from a Budget -> Accounting packet to its Engineering -> Budget source. */
+  budgetSourceRoutingId?: EntityId
+  budgetHandoff?: BudgetHandoff
   projectId: EntityId
   documentId: EntityId
   fromRole: Role
@@ -257,6 +264,8 @@ export interface ApprovalRequest extends WorkflowEntity {
 
 /** Metadata only; future mock repositories may persist browser Blobs in IndexedDB. */
 export interface Document extends ScopedEntity {
+  budgetRoutingId?: EntityId
+  projectDocumentType?: ProjectDocumentType
   documentType?: RegistrationDocumentType
   fileName: string
   mimeType: string

@@ -23,6 +23,20 @@ function sameData(a: EntityMap[EntityName], b: EntityMap[EntityName]): boolean {
 async function replaceScope(database: MockDatabase, actor: User, replacement: Dataset, transactionId: string, operation: 'import' | 'reset'): Promise<void> {
   const before = scopeDataset(await database.snapshot(), actor.municipalityId)
   if (operation === 'import') {
+    for (const old of before.projects.filter(p => p.construction)) {
+      const incoming = replacement.projects.find(p => p.id === old.id)
+      if (!incoming || !sameData(old, incoming)) throw new DataError('conflict', 'Construction history cannot be removed or rewritten by import.')
+    }
+    if (replacement.projects.some(p => p.construction && !before.projects.some(old => old.id === p.id && old.construction))) throw new DataError('validation', 'Register tracked projects through the construction workflow.')
+    const trackedIds = new Set(before.projects.filter(p => p.construction).map(p => p.id))
+    for (const name of ['documents', 'documentRouting'] as const) {
+      const tracked = (row: EntityMap[typeof name]) => 'projectId' in row ? trackedIds.has(row.projectId) : trackedIds.has(row.entityId)
+      for (const old of before[name].filter(tracked)) {
+        const incoming = replacement[name].find(row => row.id === old.id)
+        if (!incoming || !sameData(old, incoming)) throw new DataError('conflict', 'Construction document and forwarding history cannot be rewritten by import.')
+      }
+      if (replacement[name].some(row => tracked(row) && !before[name].some(old => old.id === row.id))) throw new DataError('validation', 'Upload and forward construction evidence through the project workflow.')
+    }
     for (const old of before.accountingRecords) {
       const incoming = replacement.accountingRecords.find(row => row.id === old.id)
       if (!incoming || !sameData(old, incoming)) throw new DataError('conflict', 'Authorized accounting history cannot be removed or rewritten by import.')

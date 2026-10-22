@@ -1,4 +1,6 @@
 import { registrationDocumentTypes, type RegistrationDocumentType } from '../domain/registration.js'
+import { projectDocumentTypes, type ProjectDocumentType } from '../domain/construction.js'
+import type { ConstructionProject } from '../domain/models.js'
 import { z } from 'zod'
 import type { Document } from '../domain/models.js'
 import type { MockDatabase } from '../mock/database.js'
@@ -9,13 +11,18 @@ import { documentNameSchema, parseEntity } from '../mock/validation/schemas.js'
 import type { RequestContext } from './contracts.js'
 import { scopedRecord, tableResources, visibleRecord } from './entityAccess.js'
 import { DataError, respond } from './errors.js'
+import { budgetDocumentTypes } from '../domain/budget.js'
+import { appendBudgetEvent, editableBudgetStatuses } from './budgetValidation.js'
+import type { ProjectDocumentRouting } from '../domain/models.js'
 
 export const documentLimits = { maxBytes: 5 * 1024 * 1024, mimeTypes: ['application/pdf', 'image/png', 'image/jpeg', 'text/plain'] } as const
-export interface DocumentUpload { fileName: string; file: Blob; entityType: Document['entityType']; entityId: string; documentType?: RegistrationDocumentType }
+export interface DocumentUpload { fileName: string; file: Blob; entityType: Document['entityType']; entityId: string; documentType?: RegistrationDocumentType; projectDocumentType?: ProjectDocumentType; budgetRoutingId?: string }
 
 async function validateFile(input: DocumentUpload): Promise<void> {
-  z.strictObject({ fileName: documentNameSchema, file: z.instanceof(Blob), entityType: z.enum(['registration', 'capitalization', 'correction', 'transfer', 'maintenance', 'disposal', 'reconciliation', 'project', 'inventory', 'cip_cost']), entityId: z.string().min(1), documentType: z.enum(registrationDocumentTypes).optional() }).parse(input)
+  z.strictObject({ fileName: documentNameSchema, file: z.instanceof(Blob), entityType: z.enum(['registration', 'capitalization', 'correction', 'transfer', 'maintenance', 'disposal', 'reconciliation', 'project', 'inventory', 'cip_cost']), entityId: z.string().min(1), documentType: z.enum(registrationDocumentTypes).optional(), projectDocumentType: z.enum(projectDocumentTypes).optional(), budgetRoutingId: z.string().min(1).max(160).optional() }).parse(input)
   if (input.entityType === 'registration' && !input.documentType) throw new DataError('validation', 'Choose a supporting-document type before uploading.')
+  if (input.projectDocumentType && input.entityType !== 'project') throw new DataError('validation', 'Project document classification requires a construction project.')
+  if (input.budgetRoutingId && (input.entityType !== 'project' || !budgetDocumentTypes.some(t => t === input.projectDocumentType))) throw new DataError('validation', 'Budget packet references apply only to voucher, budget review or external Treasury confirmation evidence.')
   if (input.entityType !== 'registration' && input.documentType) throw new DataError('validation', 'This classification applies only to asset registrations.')
   const file = input.file
   if (file.size < 1 || file.size > documentLimits.maxBytes || !(documentLimits.mimeTypes as readonly string[]).includes(file.type)) throw new DataError('validation', 'Use a nonempty PDF, PNG, JPEG or text file up to 5 MiB.')
@@ -46,13 +53,39 @@ export function createDocumentService(database: MockDatabase) {
           const attached = await Promise.all(owner.documentIds.map((id) => database.entity('documents').get(id)))
           if (attached.some((doc) => doc?.documentType === input.documentType)) throw new DataError('duplicate', 'Replace an existing document of this type by removing it first.')
         }
-        if (!['draft', 'returned'].includes(owner.workflowStatus)) throw new DataError('invalid_transition', 'Attach documents only to draft or returned requests.')
+        const project = table === 'projects' ? owner as ConstructionProject : null
+        const budgetType = budgetDocumentTypes.some(t => t === input.projectDocumentType)
+        let budgetRoute: ProjectDocumentRouting | null = null
+        if (budgetType) {
+          if (actor.role !== 'budget_office' || !project?.construction || !input.budgetRoutingId) throw new DataError('forbidden', 'Budget evidence requires the assigned Budget officer and a received packet.')
+          budgetRoute = await scopedRecord(database, actor, 'documentRouting', input.budgetRoutingId)
+          const processing = budgetRoute.budgetProcessing
+          if (budgetRoute.projectId !== project.id || budgetRoute.toRole !== 'budget_office' || budgetRoute.assignedUserId !== actor.id || !processing) throw new DataError('forbidden', 'This is not your received Engineering packet.')
+          if (project.construction.stage !== 'forwarded' || (input.projectDocumentType === 'treasury_confirmation_demo' ? processing.status !== 'treasury_pending' : !editableBudgetStatuses.includes(processing.status))) throw new DataError('invalid_transition', 'This packet is not accepting that document at this processing stage.')
+        }
+        if (project?.construction) {
+          if (!input.projectDocumentType) throw new DataError('validation', 'Choose a project evidence type.')
+          if (input.projectDocumentType === 'engineering_report' && actor.role !== 'engineering_office') throw new DataError('forbidden', 'Engineering reports must be uploaded by the assigned Engineering officer.')
+          if (['capitalized', 'cancelled'].includes(project.projectStatus) || (project.projectStatus === 'completed' && !budgetRoute && !(actor.role === 'engineering_office' && ['returned', 'engineering_received', 'processed'].includes(project.construction.stage)))) throw new DataError('invalid_transition', 'Closed project documents are read-only.')
+          const engineering = ['construction_plan', 'availability_of_fund', 'engineering_report', 'progress_report']
+          if ((actor.role === 'budget_office' && !budgetRoute) || (actor.role === 'engineering_office' && (!engineering.includes(input.projectDocumentType) || !['engineering_received', 'processed', 'returned'].includes(project.construction.stage)))) throw new DataError('forbidden', 'This evidence cannot be uploaded at the current processing stage.')
+          if (actor.role === 'property_officer' && ['construction_plan', 'availability_of_fund'].includes(input.projectDocumentType) && !['awaiting_proposal', 'proposal_recorded', 'mayor_simulated', 'returned'].includes(project.construction.stage)) throw new DataError('invalid_transition', 'Engineering is processing these documents; replacements require a return.')
+        } else if (!['draft', 'returned'].includes(owner.workflowStatus)) throw new DataError('invalid_transition', 'Attach documents only to draft or returned requests.')
         const at = new Date().toISOString(), id = crypto.randomUUID()
-        const document = parseEntity('documents', { id, municipalityId: actor.municipalityId, version: 1, createdAt: at, updatedAt: at, ...(input.documentType ? { documentType: input.documentType } : {}), fileName: input.fileName, mimeType: input.file.type, sizeBytes: input.file.size, uploadedById: actor.id, entityType: input.entityType, entityId: input.entityId, storageKey: `upload:${id}` })
-        const updated = parseEntity(table, { ...owner, documentIds: [...owner.documentIds, document.id], version: owner.version + 1, updatedAt: at })
+        const document = parseEntity('documents', { id, municipalityId: actor.municipalityId, version: 1, createdAt: at, updatedAt: at, ...(input.documentType ? { documentType: input.documentType } : {}), ...(input.projectDocumentType ? { projectDocumentType: input.projectDocumentType } : {}), ...(input.budgetRoutingId ? { budgetRoutingId: input.budgetRoutingId } : {}), fileName: input.fileName, mimeType: input.file.type, sizeBytes: input.file.size, uploadedById: actor.id, entityType: input.entityType, entityId: input.entityId, storageKey: `upload:${id}` })
+        const construction = project?.construction ? { ...project.construction, ...(input.projectDocumentType === 'construction_plan' ? { constructionReview: 'pending', stage: project.construction.stage === 'processed' ? 'engineering_received' : project.construction.stage } : {}), ...(input.projectDocumentType === 'availability_of_fund' ? { fundReview: 'pending', stage: project.construction.stage === 'processed' ? 'engineering_received' : project.construction.stage } : {}), timeline: [...project.construction.timeline, { id: crypto.randomUUID(), actorId: actor.id, occurredAt: at, action: 'document_uploaded', note: `${input.projectDocumentType}: ${input.fileName}`, documentIds: [document.id], progressPercent: project.construction.progressPercent }] } : undefined
+        const updated = parseEntity(table, { ...owner, ...(construction ? { construction } : {}), documentIds: [...owner.documentIds, document.id], version: owner.version + 1, updatedAt: at })
         await database.entity('documents').add(document)
         await database.blobs.add({ id: document.storageKey, documentId: document.id, municipalityId: actor.municipalityId, blob: input.file })
         await database.entity(table).put(updated)
+        if (budgetRoute?.budgetProcessing) {
+          const processing = structuredClone(budgetRoute.budgetProcessing)
+          if (input.projectDocumentType !== 'treasury_confirmation_demo') { processing.status = 'under_review'; processing.treasury = null }
+          appendBudgetEvent(processing, actor, 'upload_document', `${input.projectDocumentType}: ${input.fileName}`, [document.id], at)
+          const changed = parseEntity('documentRouting', { ...budgetRoute, budgetProcessing: processing, documentIds: [...budgetRoute.documentIds, document.id], version: budgetRoute.version + 1, updatedAt: at })
+          await database.entity('documentRouting').put(changed)
+          await writeAudit(database, actor, transactionId, 'documentRouting', budgetRoute, changed, 'budget_upload_document')
+        }
         await writeAudit(database, actor, transactionId, 'documents', null, document, 'upload')
         await writeAudit(database, actor, transactionId, table, owner, updated, 'attachDocument')
         return document
@@ -96,7 +129,7 @@ export function createDocumentService(database: MockDatabase) {
         else if (actor.role === 'auditor' && registration.recognizedAssetId) await authorize(database, context, 'assets', 'read')
         else await authorize(database, context, 'asset_registrations', 'read')
       } else {
-        const resource = actor.role === 'approving_officer' && document.entityType === 'project' ? 'capitalization_approvals'
+        const resource = actor.role === 'accounting_officer' && document.entityType === 'project' ? 'cip_costs' : actor.role === 'approving_officer' && document.entityType === 'project' ? 'capitalization_approvals'
           : document.entityType !== 'project' && document.entityType !== 'inventory' && document.entityType !== 'cip_cost' && actor.role === 'approving_officer'
           ? approvalResources[document.entityType] : tableResources[subjectTables[document.entityType]]
         await authorize(database, context, resource, 'read')

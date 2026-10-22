@@ -3,12 +3,16 @@ import type { NavItem } from '../../config/navigation'
 import { lazy, Suspense } from 'react'
 
 const AccountingModule = lazy(() => import('../../features/accounting/AccountingModule'))
+const ConstructionModule = lazy(() => import('../../features/construction/ConstructionModule'))
+const BudgetModule = lazy(() => import('../../features/budget/BudgetModule'))
 const ApprovalManagementModule = lazy(() => import('../../features/approvals/ApprovalManagementModule'))
 const AssetRegistryModule = lazy(() => import('../../features/assets/AssetRegistryModule'))
 const AdministratorModule = lazy(() => import('../../features/administration/AdministratorModule'))
 
 /** Admin destinations are complete; unfinished business modules keep their clear placeholder. */
 export default function ModulePage({ item }: { item: NavItem }) {
+  if (item.path === 'budget' || item.path === 'accounting-documents') return <Suspense fallback={<p role="status">Loading document processing...</p>}><BudgetModule /></Suspense>
+  if (item.path === 'construction-projects' || item.path === 'engineering') return <Suspense fallback={<p role="status">Loading construction projects...</p>}><ConstructionModule key={item.path} module={item.path} /></Suspense>
   if (item.path === 'recognition' || item.path === 'depreciation') return <Suspense fallback={<p role="status">Loading accounting...</p>}><AccountingModule key={item.path} module={item.path} /></Suspense>
   if (item.path === 'approvals' || item.path === 'approvals/returned' || item.path === 'approvals/history' || item.path.startsWith('approvals/')) return (
     <Suspense fallback={<p role="status" className="text-sm text-gray">Loading approvals…</p>}>

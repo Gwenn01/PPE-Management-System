@@ -5,6 +5,7 @@ import { database } from '../mock/database.js'
 import { authorize } from '../mock/unitOfWork.js'
 import type { RequestContext } from './contracts.js'
 import { respond } from './errors.js'
+import { visibleRecord } from './entityAccess.js'
 
 export interface DashboardMetric {
   id: string
@@ -49,8 +50,13 @@ export function createDashboardService(storage: MockDatabase = database) {
     getSnapshot: (context: RequestContext) => respond(() => storage.transaction('r', storage.tables, async (): Promise<DashboardSnapshot> => {
       const actor = await authorize(storage, context, 'dashboard', 'read')
       const role = actor.role
-      const scoped = <K extends Exclude<EntityName, 'municipalities'>>(entity: K): Promise<EntityMap[K][]> =>
-        storage.entity(entity).where('municipalityId').equals(actor.municipalityId).toArray()
+      const scoped = async <K extends Exclude<EntityName, 'municipalities'>>(entity: K): Promise<EntityMap[K][]> => {
+        const rows = await storage.entity(entity).where('municipalityId').equals(actor.municipalityId).toArray()
+        if (entity !== 'projects' && entity !== 'documentRouting') return rows
+        const visible: EntityMap[K][] = []
+        for (const row of rows) if (await visibleRecord(storage, actor, entity, row)) visible.push(row)
+        return visible
+      }
       let metrics: DashboardMetric[] = []
       let records: DashboardRecord[] = []
       let recordsTitle = 'Recent records'
@@ -110,6 +116,13 @@ export function createDashboardService(storage: MockDatabase = database) {
             ...costs.map((row) => record(row.id, row.description, 'CIP cost', row.workflowStatus, row.updatedAt)),
             ...entries.map((row) => record(row.id, `${row.kind} · ${row.accountCode}`, 'Posted accounting entry', 'posted', row.postingDate)),
           ]
+          const grants = await scoped('permissions')
+          if (grants.some(g => g.role === role && g.resource === 'cip_costs' && g.action === 'read')) {
+            const packets = (await scoped('documentRouting')).filter(r => r.toRole === role && r.assignedUserId === actor.id && !!r.budgetHandoff)
+            const projects = await scoped('projects')
+            metrics.push(count('project_documents', 'Project packets awaiting receipt', packets.filter(r => r.workflowStatus === 'submitted').length, 'Reviewed Budget handoffs; Trust Fund Treasury confirmation is required'))
+            records.push(...packets.map(r => record(r.id, projects.find(p => p.id === r.projectId)?.name ?? 'Construction document packet', `Voucher ${r.budgetHandoff!.voucher.reference}`, r.workflowStatus, r.updatedAt, '/dashboard/accounting-documents')))
+          }
           break
         }
         case 'inventory_personnel': {
@@ -164,6 +177,7 @@ export function createDashboardService(storage: MockDatabase = database) {
           const [projects, routings] = await Promise.all([scoped('projects'), scoped('documentRouting')])
           const own = routings.filter((row) => row.fromRole === role || (row.toRole === role && (!row.assignedUserId || row.assignedUserId === actor.id)))
           const assignedIds = new Set(own.map((row) => row.projectId))
+          for (const project of projects) if (project.construction?.engineeringUserId === actor.id) assignedIds.add(project.id)
           metrics = [
             count('projects', 'Assigned projects', assignedIds.size, 'Projects with your document routes'),
             count('reviews', 'Pending document reviews', own.filter((row) => row.toRole === role && isPending(row.workflowStatus)).length, 'Documents sent for your review'),
@@ -171,6 +185,7 @@ export function createDashboardService(storage: MockDatabase = database) {
           ]
           recordsTitle = 'Engineering document routing'
           records = own.map((row) => record(row.id, projects.find((project) => project.id === row.projectId)?.name ?? 'Project document', `Route to ${row.toRole.replaceAll('_', ' ')}`, row.workflowStatus, row.updatedAt))
+          records.push(...projects.filter(p => p.construction).map(p => record(p.id, p.name, `${p.construction!.progressPercent}% implementation progress`, p.construction!.stage, p.updatedAt, '/dashboard/engineering')))
           break
         }
         case 'budget_office': {
@@ -182,8 +197,11 @@ export function createDashboardService(storage: MockDatabase = database) {
             count('routing', 'Document routing summaries', own.length, 'Budget-bound routing records'),
           ]
           recordsTitle = 'Budget document routing'
-          records = own.map((row) => record(row.id, projects.find((project) => project.id === row.projectId)?.name ?? 'Project document', row.receivedAt ? `Received ${row.receivedAt}` : 'Not marked received', row.workflowStatus, row.updatedAt))
-          description = 'Voucher totals are unavailable: no voucher ledger exists in the current mock schema.'
+          metrics.push(count('incomplete', 'Incomplete or returned processing', own.filter(r => ['incomplete', 'accounting_returned', 'returned_to_engineering'].includes(r.budgetProcessing?.status ?? '')).length, 'Document corrections required'))
+          metrics.push(count('treasury', 'External Treasury pending', own.filter(r => r.budgetProcessing?.status === 'treasury_pending').length, 'Demo confirmation evidence required'))
+          metrics.push(count('completed', 'Completed document processing', own.filter(r => r.budgetProcessing?.status === 'completed').length, 'Accounting acknowledged receipt; no disbursement'))
+          records = own.map((row) => record(row.id, projects.find((project) => project.id === row.projectId)?.name ?? 'Project document', row.budgetProcessing?.voucher ? `Voucher ${row.budgetProcessing.voucher.reference}` : row.receivedAt ? `Received ${row.receivedAt}` : 'Not marked received', row.budgetProcessing?.status ?? row.workflowStatus, row.updatedAt, '/dashboard/budget'))
+          description = 'Engineering-to-Budget document queues, vouchers and external Treasury simulations. No real fund transfers or disbursements.'
           break
         }
       }

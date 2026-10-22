@@ -92,3 +92,13 @@ The six Administrator destinations now include local-user administration, separa
 ### Phase 06 — Asset registry and registration
 
 Sign in as a municipality's **Property Officer**. Open **Assets** to search/sort/filter existing PPE records and inspect linked registration/document details; open **Asset Registration** to create an intake draft, upload its classified supporting documents, submit for approval, and review decisions or resubmit a returned request. Validation and permissions are enforced in IndexedDB service transactions. Admins can configure *municipality-specific demo* supporting-document requirements in **System Settings**; do not treat these as government-prescribed requirements. A submitted request does **not** create an active asset, depreciation calculation or recognition posting. See `DEVELOPMENT_PROGRESS.md` and `APPLY_PPE_PHASE06.md` for compatibility and verification notes.
+
+
+### Phase 09 - Construction and Engineering
+
+Property Officer: open Construction Projects, register a demo project with assigned Engineering/Budget officers, upload MPDO proposal and simulated Mayor authorization evidence, and record those external steps. Engineering: receive the assigned project, upload/review construction and Availability of Fund documents, record progress with a progress report, upload an Engineering report and forward to Budget. Budget can inspect and return the packet for correction. Property can record monitoring, upload completion/acceptance evidence and complete an eligible project at 100% progress. All parties share the project timeline and document/forwarding history. External stages are simulations only, not real Mayor approval; no automatic capitalization occurs. See DEVELOPMENT_PROGRESS.md for evidence rules and verification.
+
+
+### Phase 10 - Budget vouchers and document routing
+
+After Engineering forwards a tracked project, its assigned Budget Officer opens Budget Workspace, receives the packet, saves voucher details and Regular/Trust Fund classification, uploads voucher and Budget review evidence, and marks the requirements ready. Regular Fund packets forward directly to the assigned Accounting Officer. Trust Fund packets first enter an external Treasury demo stage; upload a separate demo confirmation file and use the explicitly labeled simulation action before forwarding to Accounting. The Accounting Officer opens Received Project Documents to acknowledge receipt or return documents. Processing history retains voucher snapshots, external-stage evidence, dates and prior returned handoffs. These are local document simulations only, with no Treasury login, payment, fund transfer, capitalization or financial posting. See DEVELOPMENT_PROGRESS.md for validation rules and test results.

@@ -111,7 +111,7 @@ describe('route metadata, sidebar and guard rules', () => {
   const expected: Record<Role, string[]> = {
     administrator: ['', 'users', 'account-requests', 'departments', 'permissions', 'settings', 'audit-trail'],
     property_officer: ['', 'assets', 'asset-registration', 'construction-projects', 'discrepancies', 'transfers', 'maintenance', 'disposal'],
-    accounting_officer: ['', 'assets', 'recognition', 'depreciation', 'cip-costs', 'disposal-review', 'reconciliation', 'reports'],
+    accounting_officer: ['', 'assets', 'accounting-documents', 'recognition', 'depreciation', 'cip-costs', 'disposal-review', 'reconciliation', 'reports'],
     inventory_personnel: ['', 'assets', 'physical-inventory', 'asset-monitoring'],
     approving_officer: ['', 'approvals', 'approvals/returned', 'approvals/history', 'approvals/registrations', 'approvals/capitalization', 'approvals/corrections', 'approvals/lifecycle', 'reports'],
     auditor: ['', 'assets', 'reports', 'audit-trail'],

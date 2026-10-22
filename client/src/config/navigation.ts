@@ -131,7 +131,7 @@ export const navItems: NavItem[] = [
   },
   {
     path: 'budget',
-    label: 'Budget Documents',
+    label: 'Budget Workspace',
     description: 'Review project funding documents for your municipality.',
     icon: Landmark,
     group: 'Budget',
@@ -173,6 +173,14 @@ export const navItems: NavItem[] = [
   },
 
   // Accounting
+  {
+    path: 'accounting-documents',
+    label: 'Received Project Documents',
+    description: 'Receive or return reviewed Budget document packets; Treasury remains an external demo stage.',
+    icon: Landmark,
+    group: 'Accounting',
+    permission: { resource: 'cip_costs', action: 'read' },
+  },
   {
     path: 'recognition',
     label: 'Recognition & Cost',
