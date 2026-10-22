@@ -232,6 +232,10 @@ export const navItems: NavItem[] = [
     permission: { resource: 'inventory_checks', action: 'read' },
   },
 
+  // Centralized Phase 07 queue. Existing type-specific paths remain deep-link compatible.
+  { path: 'approvals', label: 'Pending Approvals', description: 'Review pending requests across all seven authorization types.', icon: CheckCircle2, group: 'Approvals', permission: { resource: 'registration_approvals', action: 'read' } },
+  { path: 'approvals/returned', label: 'Returned Requests', description: 'See requests waiting for corrections.', icon: Repeat, group: 'Approvals', permission: { resource: 'registration_approvals', action: 'read' } },
+  { path: 'approvals/history', label: 'Approval History', description: 'Inspect completed and returned decisions.', icon: History, group: 'Approvals', permission: { resource: 'registration_approvals', action: 'read' } },
   // Approvals
   {
     path: 'approvals/registrations',

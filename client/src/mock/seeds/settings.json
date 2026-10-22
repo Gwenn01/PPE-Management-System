@@ -38,5 +38,25 @@
     "key": "demo_notice",
     "value": "Fictional demo records. Accounting policies are configurable and not legally verified.",
     "isDemo": true
+  },
+  {
+    "id": "botolan-setting-registration-documents",
+    "municipalityId": "botolan",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "key": "registration_document_rules",
+    "value": "{\"purchase\":[\"purchase_order\",\"inspection_acceptance_report\",\"property_acknowledgement_receipt\"],\"donation\":[\"inspection_acceptance_report\",\"property_acknowledgement_receipt\"],\"construction\":[\"inspection_acceptance_report\",\"property_acknowledgement_receipt\"],\"transfer\":[\"requisition_issue_slip\",\"property_acknowledgement_receipt\"]}",
+    "isDemo": true
+  },
+  {
+    "id": "san_antonio-setting-registration-documents",
+    "municipalityId": "san_antonio",
+    "version": 1,
+    "createdAt": "2026-10-01T08:00:00.000Z",
+    "updatedAt": "2026-10-01T08:00:00.000Z",
+    "key": "registration_document_rules",
+    "value": "{\"purchase\":[\"purchase_order\",\"inspection_acceptance_report\",\"property_acknowledgement_receipt\"],\"donation\":[\"inspection_acceptance_report\",\"property_acknowledgement_receipt\"],\"construction\":[\"inspection_acceptance_report\",\"property_acknowledgement_receipt\"],\"transfer\":[\"requisition_issue_slip\",\"property_acknowledgement_receipt\"]}",
+    "isDemo": true
   }
 ]

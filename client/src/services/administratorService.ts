@@ -1,3 +1,4 @@
+import { getRegistrationRules } from './registrationValidation.js'
 import { z } from 'zod'
 import type { Role } from '../config/roles.js'
 import { roleList } from '../config/roles.js'
@@ -68,7 +69,8 @@ export function createAdministratorService(db: MockDatabase = defaultDatabase) {
       const [users, departments, assets, assetCategories, permissions, settings, depreciationPolicies, auditLogs] = await Promise.all([
         scoped('users', ctx.municipalityId), scoped('departments', ctx.municipalityId), scoped('assets', ctx.municipalityId), scoped('assetCategories', ctx.municipalityId), scoped('permissions', ctx.municipalityId), scoped('settings', ctx.municipalityId), scoped('depreciationPolicies', ctx.municipalityId), scoped('auditLogs', ctx.municipalityId),
       ])
-      return { users, departments, assets, assetCategories, permissions, settings, depreciationPolicies, auditLogs: auditLogs.sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)) }
+      const registrationRules = await getRegistrationRules(db, ctx.municipalityId)
+      return { users, departments, assets, assetCategories, permissions, settings, depreciationPolicies, registrationRules, auditLogs: auditLogs.sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)) }
     })),
     createUser: (ctx: RequestContext, input: UserDraft) => respond(() => commitMutation(db, async (tx) => {
       const actor = await authorize(db, ctx, 'users', 'create')

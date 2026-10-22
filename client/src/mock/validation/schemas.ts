@@ -1,3 +1,4 @@
+import { registrationDocumentTypes } from '../../domain/registration.js'
 import { z } from 'zod'
 import { roleList } from '../../config/roles.js'
 import { actions, resources } from '../../domain/permissions.js'
@@ -18,7 +19,7 @@ const subject = z.enum(['registration', 'capitalization', 'correction', 'transfe
 export const documentNameSchema = z.string().min(1).max(200).regex(/^[^<>:"/\\|?*]+$/).refine((name) => Array.from(name).every((character) => character.charCodeAt(0) >= 32), 'Filename contains control characters.')
 const base = { id, municipalityId: municipalityIdSchema, version: z.number().int().positive(), createdAt: timestamp, updatedAt: timestamp }
 const workflow = { ...base, workflowStatus: workflowStatusSchema, requestedById: id, submittedAt: timestamp.nullable(), documentIds: z.array(id) }
-const history = z.strictObject({ actorId: id, actorRole: z.enum(roleList), action: z.enum(['submit', 'review', 'approve', 'reject', 'return', 'cancel']), fromStatus: workflowStatusSchema, toStatus: workflowStatusSchema, reason: notes, occurredAt: timestamp })
+const history = z.strictObject({ actorId: id, actorRole: z.enum(roleList), action: z.enum(['submit', 'review', 'approve', 'reject', 'return', 'cancel']), fromStatus: workflowStatusSchema, toStatus: workflowStatusSchema, reason: notes, occurredAt: timestamp, submission: z.strictObject({ subjectVersion: z.number().int().positive(), documentIds: z.array(id), payload: z.string().max(20000) }).optional() })
 const auditValue = z.union([z.string(), z.number().finite(), z.boolean(), z.null()])
 
 export const entitySchemas = {
@@ -27,9 +28,9 @@ export const entitySchemas = {
   users: z.strictObject({ ...base, name: text, username: usernameSchema, email: z.email().toLowerCase(), role: z.enum(roleList), departmentId: id.nullable(), status: z.enum(['pending', 'active', 'disabled']), isDemo: z.literal(true) }),
   permissions: z.strictObject({ ...base, resource: z.enum(resources), action: z.enum(actions), role: z.enum(roleList), scope: z.literal('municipality') }),
   assetCategories: z.strictObject({ ...base, code: text, name: text, usefulLifeMonths: z.number().int().positive().max(1200) }),
-  assets: z.strictObject({ ...base, propertyNumber: text, description: text, category: id, departmentId: id, custodianId: id.nullable(), location: text, acquisitionDate: date, acquisitionCost: moneySchema, lifecycleStatus: z.enum(['in_service', 'under_maintenance', 'idle', 'disposed']), condition, registrationId: id, constructionProjectId: id.nullable() }),
+  assets: z.strictObject({ ...base, propertyNumber: text, description: text, category: id, departmentId: id, custodianId: id.nullable(), location: text, acquisitionDate: date, acquisitionCost: moneySchema, lifecycleStatus: z.enum(['in_service', 'under_maintenance', 'idle', 'disposed']), recognitionStatus: z.enum(['awaiting_recognition', 'recognized']).optional(), condition, registrationId: id, constructionProjectId: id.nullable() }),
   registrations: z.strictObject({ ...workflow, proposedPropertyNumber: text, description: text, category: id, departmentId: id, custodianId: id.nullable(), location: text, acquisitionDate: date, acquisitionCost: moneySchema, acquisitionMethod: z.enum(['purchase', 'donation', 'construction', 'transfer']), recognizedAssetId: id.nullable() }),
-  documents: z.strictObject({ ...base, fileName: documentNameSchema, mimeType: z.enum(['application/pdf', 'image/png', 'image/jpeg', 'text/plain']), sizeBytes: z.number().int().min(1).max(5 * 1024 * 1024), uploadedById: id, entityType: z.enum([...subject.options, 'project', 'inventory', 'cip_cost']), entityId: id, storageKey: id }),
+  documents: z.strictObject({ ...base, documentType: z.enum(registrationDocumentTypes).optional(), fileName: documentNameSchema, mimeType: z.enum(['application/pdf', 'image/png', 'image/jpeg', 'text/plain']), sizeBytes: z.number().int().min(1).max(5 * 1024 * 1024), uploadedById: id, entityType: z.enum([...subject.options, 'project', 'inventory', 'cip_cost']), entityId: id, storageKey: id }),
   projects: z.strictObject({ ...workflow, projectNumber: text, name: text, location: text, departmentId: id, budgetAmount: moneySchema, startDate: date, completionDate: date.nullable(), projectStatus: z.enum(['planned', 'in_progress', 'completed', 'capitalized', 'cancelled']), capitalizedAssetId: id.nullable() }),
   documentRouting: z.strictObject({ ...workflow, projectId: id, documentId: id, fromRole: z.enum(roleList), toRole: z.enum(roleList), assignedUserId: id.nullable(), receivedAt: timestamp.nullable(), remarks: notes }),
   cipCosts: z.strictObject({ ...workflow, projectId: id, description: text, amount: moneySchema, incurredDate: date, accountingRecordId: id.nullable() }),
@@ -45,7 +46,7 @@ export const entitySchemas = {
   approvals: z.strictObject({ ...workflow, subjectType: subject, subjectId: id, assignedRole: z.enum(roleList), history: z.array(history), decidedAt: timestamp.nullable() }),
   notifications: z.strictObject({ ...base, recipientId: id, title: text, message: text, severity: z.enum(['info', 'success', 'warning', 'error']), href: z.string().regex(/^\/dashboard(?:\/[-a-z0-9/]+)?$/).nullable(), readAt: timestamp.nullable() }),
   auditLogs: z.strictObject({ ...base, actorId: id, actorRole: z.enum(roleList), resource: text, entityId: id, action: text, occurredAt: timestamp, reason: notes, changes: z.array(z.strictObject({ field: text, before: auditValue, after: auditValue })), transactionId: id }),
-  settings: z.strictObject({ ...base, key: z.enum(['fiscal_year', 'demo_notice']), value: z.union([z.string().max(4000), z.number().int().min(0).max(9999), z.boolean()]), isDemo: z.literal(true) }),
+  settings: z.strictObject({ ...base, key: z.enum(['fiscal_year', 'demo_notice', 'registration_document_rules']), value: z.union([z.string().max(4000), z.number().int().min(0).max(9999), z.boolean()]), isDemo: z.literal(true) }),
 } satisfies { [K in EntityName]: z.ZodType<EntityMap[K]> }
 
 export const entityNames = Object.keys(entitySchemas) as EntityName[]
@@ -66,3 +67,4 @@ export function parseEntity<K extends EntityName>(name: K, input: unknown): Enti
   // The schema map above is checked against EntityMap; TS cannot preserve a generic indexed union.
   return entitySchemas[name].parse(input) as EntityMap[K]
 }
+

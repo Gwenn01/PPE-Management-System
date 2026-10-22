@@ -1,3 +1,4 @@
+import type { RegistrationDocumentType } from './registration.js'
 import type { Role } from '../config/roles.js'
 
 export type MunicipalityId = 'botolan' | 'san_antonio'
@@ -44,7 +45,7 @@ export interface AssetCategory extends ScopedEntity {
 }
 
 export interface DemoSetting extends ScopedEntity {
-  key: 'fiscal_year' | 'demo_notice'
+  key: 'fiscal_year' | 'demo_notice' | 'registration_document_rules'
   value: string | number | boolean
   isDemo: true
 }
@@ -71,6 +72,8 @@ export interface Asset extends ScopedEntity {
   acquisitionDate: ISODate
   acquisitionCost: Money
   lifecycleStatus: AssetLifecycleStatus
+  /** New registry entries are not accounting-recognized until a later accounting command. Legacy seeds may omit it. */
+  recognitionStatus?: 'awaiting_recognition' | 'recognized'
   condition: AssetCondition
   registrationId: EntityId
   constructionProjectId: EntityId | null
@@ -227,6 +230,8 @@ export interface ApprovalHistoryEntry {
   toStatus: WorkflowStatus
   reason: string
   occurredAt: ISODate
+  /** Immutable submission snapshot used when a returned draft is subsequently edited. */
+  submission?: { subjectVersion: number; documentIds: string[]; payload: string }
 }
 
 export interface ApprovalRequest extends WorkflowEntity {
@@ -239,6 +244,7 @@ export interface ApprovalRequest extends WorkflowEntity {
 
 /** Metadata only; future mock repositories may persist browser Blobs in IndexedDB. */
 export interface Document extends ScopedEntity {
+  documentType?: RegistrationDocumentType
   fileName: string
   mimeType: string
   sizeBytes: number
@@ -269,3 +275,4 @@ export interface Notification extends ScopedEntity {
   href: string | null
   readAt: ISODate | null
 }
+

@@ -2,10 +2,22 @@ import { Construction } from 'lucide-react'
 import type { NavItem } from '../../config/navigation'
 import { lazy, Suspense } from 'react'
 
+const ApprovalManagementModule = lazy(() => import('../../features/approvals/ApprovalManagementModule'))
+const AssetRegistryModule = lazy(() => import('../../features/assets/AssetRegistryModule'))
 const AdministratorModule = lazy(() => import('../../features/administration/AdministratorModule'))
 
 /** Admin destinations are complete; unfinished business modules keep their clear placeholder. */
 export default function ModulePage({ item }: { item: NavItem }) {
+  if (item.path === 'approvals' || item.path === 'approvals/returned' || item.path === 'approvals/history' || item.path.startsWith('approvals/')) return (
+    <Suspense fallback={<p role="status" className="text-sm text-gray">Loading approvals…</p>}>
+      <ApprovalManagementModule key={item.path} module={item.path} />
+    </Suspense>
+  )
+  if (item.path === 'assets' || item.path === 'asset-registration') return (
+    <Suspense fallback={<p role="status" className="text-sm text-gray">Loading PPE registry…</p>}>
+      <AssetRegistryModule module={item.path} />
+    </Suspense>
+  )
   if ((['users','account-requests','departments','permissions','settings','audit-trail'] as const).some((path) => path === item.path)) return (
     <Suspense fallback={<p className="text-sm text-gray" role="status">Loading administration…</p>}>
       <AdministratorModule module={item.path as 'users' | 'account-requests' | 'departments' | 'permissions' | 'settings' | 'audit-trail'} />

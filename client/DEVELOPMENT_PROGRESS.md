@@ -423,3 +423,72 @@ Status: **source implementation prepared (2026-10-22); dependency-backed verific
 ### Next action
 
 Apply the overlay to the original `client/` directory; retain original binary art/assets. Run `npm ci`, `npm run typecheck`, `npm run build`, `npm run lint`, and `npm test`. Then manually test mobile/tablet/desktop dialog focus, account review and permission-revocation/login in a real browser. Any compiler/test issues in that local environment should be addressed before using the suite as a verified deliverable.
+
+## Phase 06 — PPE Asset Registry & Registration (2026-10-22)
+
+**Status:** Source implementation complete; full dependency-backed verification pending. Builds on Phases 00–05 without adding a backend or external storage. Exact Step 2 source: `PPE_System_Flowchart_Updated.docx` (Diagram 2, asset acquisition and registration). It requires Property Officer intake/document upload, system checks for completeness/duplicates, Approving Officer review and return/reject/approve, and later Accounting Officer recognition/depreciation. Phase 06 ends at a **submitted** registration approval request. Phase 07 is responsible for decisions. Phase 06 never auto-creates an `Asset`, recognition posting, or final depreciation.
+
+### Implemented
+
+- `src/features/assets/AssetRegistryModule.tsx` replaces the `/dashboard/assets` and `/dashboard/asset-registration` placeholders. The registry supports property-number/name search, category/department/custodian/lifecycle-status filters, sorting, pagination, asset detail, acquisition cost/date, linked registration details and document previews (if permitted). Other roles with `assets:read` retain the read-only registry but do not receive Property Officer requests or create actions without their own permissions.
+- Registration list includes draft, submitted, under-review, returned, approved, rejected and cancelled records, request search/status filter, action history including decision timestamps/reasons, and requester-only draft editing. On a returned request, requester can edit fields, replace document attachments and resubmit; rejected/approved/submitted records are noneditable.
+- Registration form requires asset name, category, property number, date, cost, location, department and active custodian in that department, plus acquisition method. Peso input converts to validated safe-integer centavos before persistence. Missing/invalid references, inactive or other-municipality associations, nonpositive costs and duplicate property numbers across both existing registry assets and other registrations are rejected in the **service**, not only in the form.
+- `src/domain/registration.ts` lists the eight Diagram 2 supporting documents as strongly typed classifications. `Document.documentType` is optional for backward compatibility with existing project/document seeds, but mandatory for **new registration uploads**. The Document service ensures classification uniqueness per draft, validates real file content (existing size/type checks), checks requester ownership and local scope, persists Blob + document metadata + parent reference + immutable audit record together; supports removal only on draft/returned requests with audit evidence of removed metadata. Submitted documents cannot be removed.
+- Per-acquisition-method document requirements are municipality-scoped configurable demo rules. Initial illustrative requirements: purchase requires PO, IAR and PAR; donation/construction require IAR and PAR; transfer requires RIS and PAR. These are **NOT claimed official LGU requirements**. The Administrator settings page offers a checkbox matrix and confirmed, audited persistence. Fresh seeded databases include a `registration_document_rules` setting. Existing v3 browser databases use the same defaults without reseeding and receive a new local rules row on their first confirmed edit. Invalid configuration is rejected. Previously submitted seeded requests remain valid regardless of new rules.
+- `src/services/registrationValidation.ts` applies field/category/department/custodian/duplicate checks on create and update; submission rechecks them and requires each configured document type to have a valid linked document record **and an actual stored Blob**, not a metadata-only JSON-imported reference. Validation runs inside the shared Dexie transaction before approval queue write. `submit` transitions draft/returned to `submitted`, writes approval history/notifications and audit through the existing workflow service. Resubmission retains the full append-only decision history. Final asset recognition is intentionally absent.
+- `src/services/registrationService.ts` supplies a typed, scoped, read-only overview projection with service-authorized role-based request visibility, current grants/capabilities, and a documented administrative rules command. No raw business services, unrestricted reads, bypass APIs, or production claims have been added. `src/services/mockDataService.ts` exposes this service. The existing shared PageHeader, DataTable, StatusBadge, FileUpload, Modal, DocumentPreview, loading/error/empty feedback and UI palette are reused.
+- `tests/registration.test.ts` adds seven suites of scenarios: draft create/edit/persistence, duplicates, validation of references/cost, role & municipality isolation, conditional attachments/submission without asset creation, typed document removal and audit, return/edit/resubmit history, admin rule changes/revocation and registry-only readers. The existing `tests/data.test.ts` upload-validation fixture now supplies the required document classification when attempting an invalid upload on a submitted registration.
+
+### Changed files
+
+| Area | Files |
+| --- | --- |
+| New domain | `src/domain/registration.ts` |
+| Domain, Zod, validation | `src/domain/models.ts`, `src/mock/validation/schemas.ts`, `src/mock/validation/dataset.ts` |
+| New validation / workflows | `src/services/registrationValidation.ts`, `src/services/registrationService.ts`, `src/services/entityService.ts`, `src/services/documentService.ts`, `src/services/mockDataService.ts` |
+| Pages & settings | `src/features/assets/AssetRegistryModule.tsx`, `src/pages/dashboard/ModulePage.tsx`, `src/features/administration/AdministratorModule.tsx`, `src/services/administratorService.ts` |
+| Initial demo settings | `src/mock/seeds/settings.json` |
+| Regression tests | `tests/registration.test.ts`, `tests/data.test.ts`, `package.json` |
+| Documentation | `DEVELOPMENT_PROGRESS.md`, `README.md`, `APPLY_PPE_PHASE06.md` (overlay parent) |
+
+### Verification and limitations
+
+| Check | Actual result |
+| --- | --- |
+| Global TypeScript/TSX transpiler syntax scan | PASS; all 99 `src` + `tests` files parsed without syntax diagnostics |
+| Relative local import resolution check | PASS; no missing relative imports in the 93 source files |
+| Isolated strict typecheck of document-rule policy | PASS (`src/domain/registration.ts`) |
+| Executable document-rule assertions | PASS: eight types, method-specific defaults, invalid/duplicate types rejected |
+| ZIP integrity | Check before delivery |
+| `npm ci` | FAILED in the reconstruction runtime: npm `Exit handler never called` (incomplete dependency installation) |
+| `npm run build` | BLOCKED: `vite/client` and Node type definitions missing from incomplete npm install |
+| `npm run lint` | BLOCKED: `eslint: not found` |
+| Full `npm test`, interactive visual/keyboard tests | NOT EXECUTED: required runtime dependencies are unavailable |
+
+**Migration/compatibility:** Does not change Dexie store schema/version or reset records; optional document type and new JSON settings key are backward-compatible. The original public JPG/PNG images were not supplied in the reconstructed source and must remain in the user's existing `client` directory. Extract and merge the overlay, rather than replace that directory. This remains a public-credential, single-browser mock with no municipal synchronization and no legal accounting-policy verification.
+
+**Future work:** Phase 07 Approving Officer approval/rejection/return actions and later authorized Accounting Officer recognition. No automatic registration approval, asset activation, final depreciation or ledger posting is implemented in Phase 06.
+
+## Phase 07 — Approval Management System
+
+Status: **source implementation prepared (2026-10-22); full dependency-backed verification outstanding**.
+
+### Scope delivered
+
+- Introduced `src/services/approvalService.ts`: central typed `overview`, `getById`, `decide`, and compatible `changeStatus`. It supports all seven approval subjects through the existing `subjectTables` and `approvalResources` maps, with one transition rule set and no duplicated subject-specific review engine.
+- Kept **strict service enforcement** of persisted sessions, active Approving Officer role, live municipality-local grants, exact request/approval status agreement, original requester separation, valid transitions, stale-version rejection, and return/reject reason validation. Self-approval is not configurable or enabled by this phase.
+- Atomically commit decision status and history, originating record status, audit events, notifications and (on registration approval) the new registry asset plus reciprocal registration link. A failure rolls back the whole operation via the existing Dexie transaction with dataset validation.
+- Approved registrations now create `Asset` rows with `recognitionStatus: awaiting_recognition` and `lifecycleStatus: idle`; no accounting entry, active-in-service status or depreciation is created by approval. `recognizedAssetId` remains the pre-existing registry link property; it does not imply a posted recognition transaction.
+- Added an **optional** `recognitionStatus` field in the Asset contract/schema (legacy seed/IndexedDB entries remain readable without reseeding). Phase 06 registry displays Awaiting Recognition for newly approved records.
+- Added optional immutable submission snapshots to approval history events (request and attached document metadata serialized on each submission). Historic seed events remain valid. Return -> edit -> resubmit retains earlier events, decisions, timestamps and snapshot references. Blob binary copies are intentionally not stored within history.
+- The Approving Officer queue (`features/approvals/ApprovalManagementModule.tsx`) offers Pending, Returned and History views, type/submitter/date/status filters, DataTable search/sort/pagination, typed request detail, supporting-file preview, chronological history, explicit decision confirmation and user-visible errors. Existing type-specific routes use the same queue. New common approval routes have permission-guarded navigation.
+- Approving Officers may download documents attached to other approval subjects with the matching approval-read grant, rather than needing unrelated originating-module privileges. Document ownership and municipal isolation remain checked.
+- Later workflows (capitalization, correction, transfer, maintenance, disposal, reconciliation) can enter and move through the generic approval engine, but **decisions do not automatically execute unbuilt accounting or lifecycle operations**. New project submissions now create capitalization approval records via the existing atomic submit helper. Historical projects that were already submitted before Phase 07 without approval links remain accepted for backward compatibility; they are not automatically reclassified or reseeded. No feature pages for future workflows are introduced.
+- Added `tests/approval.test.ts` and registered it under `npm test`. Coverage includes approve/registry/notification/audit atomicity, return reason, requester correction/resubmission and snapshots, review, rejection, immutable terminal states, stale versions, cross-municipality and role denials, live permission revocation, and generic lifecycle approval without ledger or asset mutations.
+
+### Source compatibility and verification
+
+- No Dexie schema migration needed: new fields are optional in strict model/schema validation, and previously stored records remain compatible. `DATABASE_VERSION` remains 3. Existing assets and historical approval entries are unchanged.
+- Browser app remains demo-only, local and municipality-scoped. The current account's role is not changed by a permission grant.
+- Source TypeScript/TSX syntax parsed successfully for 102 application/test source files; no unresolved relative imports. The independent approval transition policy compiled under strict TypeScript and passed 33 executable assertions. ZIP integrity checked after packaging. See `APPLY_PPE_PHASE07.md`.
+- `npm ci --offline` failed because the required `zod-validation-error` tarball is not cached. A normal `npm ci` also failed in this sandbox (npm exit handler error). As attempted, `npm run build` failed on missing `vite/client`/Node type definitions, `npm run lint` failed because `eslint` is unavailable, and `npm test` failed on missing Node/React/Zod packages. Consequently those full checks **did not pass** in this runtime; they must be run after installing dependencies in the user's local project. Do not interpret the syntax scan as proof of type safety, passed tests or verified browser behavior.

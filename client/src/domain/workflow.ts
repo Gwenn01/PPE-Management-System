@@ -12,7 +12,7 @@ export const submissionResources = {
   transfer: 'asset_transfers', maintenance: 'maintenance_requests', disposal: 'disposal_requests', reconciliation: 'reconciliations',
 } as const satisfies Record<ApprovalSubject, Resource>
 
-const transitions: Record<ApprovalHistoryEntry['action'], { from: readonly WorkflowStatus[]; to: WorkflowStatus; permission: Action }> = {
+export const approvalTransitionRules: Readonly<Record<ApprovalHistoryEntry['action'], { from: readonly WorkflowStatus[]; to: WorkflowStatus; permission: Action }>> = {
   submit: { from: ['draft', 'returned'], to: 'submitted', permission: 'submit' },
   review: { from: ['submitted'], to: 'under_review', permission: 'approve' },
   approve: { from: ['submitted', 'under_review'], to: 'approved', permission: 'approve' },
@@ -22,10 +22,11 @@ const transitions: Record<ApprovalHistoryEntry['action'], { from: readonly Workf
 }
 
 export function validApprovalEvent(subject: ApprovalSubject, event: ApprovalHistoryEntry, requesterId: string): boolean {
-  const rule = transitions[event.action]
+  const rule = approvalTransitionRules[event.action]
   const byRequester = event.action === 'submit' || event.action === 'cancel'
   return rule.from.includes(event.fromStatus) && event.toStatus === rule.to &&
     (byRequester ? event.actorId === requesterId : event.actorId !== requesterId) &&
     (!['return', 'reject', 'cancel'].includes(event.action) || !!event.reason.trim()) &&
     hasRolePermission(event.actorRole, { resource: byRequester ? submissionResources[subject] : approvalResources[subject], action: rule.permission })
 }
+

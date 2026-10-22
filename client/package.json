@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "typecheck": "tsc -b",
-    "test": "tsc -p tsconfig.test.json && node --test .test-build/tests/architecture.test.js .test-build/tests/data.test.js .test-build/tests/auth.test.js .test-build/tests/dashboard.test.js .test-build/tests/administrator.test.js",
+    "test": "tsc -p tsconfig.test.json && node --test .test-build/tests/architecture.test.js .test-build/tests/data.test.js .test-build/tests/auth.test.js .test-build/tests/dashboard.test.js .test-build/tests/administrator.test.js .test-build/tests/registration.test.js .test-build/tests/approval.test.js",
     "preview": "vite preview"
   },
   "dependencies": {

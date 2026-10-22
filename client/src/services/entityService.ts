@@ -1,21 +1,21 @@
+import { validateRegistrationFields, validateRegistrationSubmission } from './registrationValidation.js'
 import { z } from 'zod'
 import type { EntityMap, EntityName } from '../domain/data.js'
-import type { ApprovalSubject, ScopedEntity, User, WorkflowEntity, WorkflowStatus } from '../domain/models.js'
+import type { ApprovalSubject, AssetRegistration, ScopedEntity, User, WorkflowEntity, WorkflowStatus } from '../domain/models.js'
 import type { MockDatabase } from '../mock/database.js'
 import { entityRepository } from '../mock/repositories/entityRepository.js'
 import { commitMutation, writeAudit } from '../mock/unitOfWork.js'
 import { entityNames, entitySchemas, parseEntity, workflowStatusSchema } from '../mock/validation/schemas.js'
-import { subjectTables } from '../mock/validation/dataset.js'
 import type { RequestContext } from './contracts.js'
 import type { CreateInput, EntityQuery, EntityService, EntityServices, MutationCommand, WritableEntity, WorkflowEntityName } from './dataContracts.js'
 import { protectedFields, writableEntities, workflowEntities } from './dataContracts.js'
-import { approvalResources, authorizeEntity, scopedRecord, visibleRecord } from './entityAccess.js'
+import { authorizeEntity, scopedRecord, visibleRecord } from './entityAccess.js'
 import { authorize } from '../mock/unitOfWork.js'
 import { DataError, respond } from './errors.js'
 
 const positiveVersion = z.number().int().positive()
 const recordId = z.string().min(1).max(160)
-const approvalSubjects: Partial<Record<WorkflowEntityName, ApprovalSubject>> = { registrations: 'registration', discrepancies: 'correction', transfers: 'transfer', maintenance: 'maintenance', disposals: 'disposal', reconciliations: 'reconciliation' }
+const approvalSubjects: Partial<Record<WorkflowEntityName, ApprovalSubject>> = { projects: 'capitalization', registrations: 'registration', discrepancies: 'correction', transfers: 'transfer', maintenance: 'maintenance', disposals: 'disposal', reconciliations: 'reconciliation' }
 const workflowSet: ReadonlySet<string> = new Set(workflowEntities)
 const writableSet: ReadonlySet<string> = new Set(writableEntities)
 
@@ -54,6 +54,7 @@ export async function applyCreate<K extends WritableEntity>(database: MockDataba
   const actor = await authorizeEntity(database, context, name, 'create')
   const at = new Date().toISOString()
   const record = parseEntity(name, { ...inputFields(input), ...defaults(name, actor), id: crypto.randomUUID(), municipalityId: context.municipalityId, version: 1, createdAt: at, updatedAt: at })
+  if (name === 'registrations') await validateRegistrationFields(database, actor, record as EntityMap['registrations'])
   await entityRepository(database, name).create(record)
   await writeAudit(database, actor, transactionId, name, null, record, 'create')
   return record
@@ -87,6 +88,7 @@ export async function applyUpdate<K extends WritableEntity>(database: MockDataba
     const transfers = await database.entity('transfers').where('municipalityId').equals(context.municipalityId).filter((record) => (record.fromDepartmentId === id || record.toDepartmentId === id) && !['approved', 'rejected', 'cancelled'].includes(record.workflowStatus)).count()
     if (dependents || assets || registrations || projects || sessions || transfers) throw new DataError('validation', 'Department still has dependent users, assets or unfinished business records.')
   }
+  if (name === 'registrations') await validateRegistrationFields(database, actor, record as EntityMap['registrations'])
   await entityRepository(database, name).update(record)
   if (name === 'users' && 'role' in old && 'role' in record && old.role !== record.role) await database.sessions.where('userId').equals(record.id).delete()
   await writeAudit(database, actor, transactionId, name, old, record, 'update')
@@ -98,7 +100,9 @@ async function synchronizeApproval(database: MockDatabase, actor: User, name: Wo
   if (!subjectType) return
   const old = await database.entity('approvals').where('subjectId').equals(after.id).first()
   const at = new Date().toISOString()
-  const event = { actorId: actor.id, actorRole: actor.role, action: after.workflowStatus === 'submitted' ? 'submit' as const : 'cancel' as const, fromStatus: before.workflowStatus, toStatus: after.workflowStatus, reason, occurredAt: at }
+  // A historical submission snapshot is immutable even when a returned draft replaces its documents.
+  const documentsAtSubmission = after.workflowStatus === 'submitted' ? (await Promise.all(after.documentIds.map((id) => database.entity('documents').get(id)))).filter((doc) => !!doc) : []
+  const event = { actorId: actor.id, actorRole: actor.role, action: after.workflowStatus === 'submitted' ? 'submit' as const : 'cancel' as const, fromStatus: before.workflowStatus, toStatus: after.workflowStatus, reason, occurredAt: at, ...(after.workflowStatus === 'submitted' ? { submission: { subjectVersion: after.version, documentIds: [...after.documentIds], payload: JSON.stringify({ request: after, documents: documentsAtSubmission }) } } : {}) }
   const row = parseEntity('approvals', {
     ...(old ?? { id: crypto.randomUUID(), municipalityId: actor.municipalityId, version: 0, createdAt: at, requestedById: after.requestedById, subjectType, subjectId: after.id, assignedRole: 'approving_officer', history: [] }),
     version: (old?.version ?? 0) + 1, updatedAt: at, workflowStatus: after.workflowStatus, submittedAt: after.submittedAt, documentIds: after.documentIds,
@@ -126,6 +130,7 @@ async function applyWorkflow<K extends WorkflowEntityName>(database: MockDatabas
   if (old.requestedById !== actor.id && !(name === 'documentRouting' && 'toRole' in old && old.toRole === actor.role)) throw new DataError('forbidden', 'Only the requester or assigned routing office can submit this request.')
   const allowed = next === 'submitted' ? ['draft', 'returned'] : ['draft', 'returned', 'submitted']
   if (!allowed.includes(old.workflowStatus)) throw new DataError('invalid_transition', 'The workflow does not allow this transition.')
+  if (name === 'registrations' && next === 'submitted') await validateRegistrationSubmission(database, actor, old as AssetRegistration)
   const row = parseEntity(name, { ...old, workflowStatus: next, submittedAt: next === 'submitted' ? new Date().toISOString() : old.submittedAt, version: old.version + 1, updatedAt: new Date().toISOString() })
   await database.entity(name).put(row)
   await writeAudit(database, actor, transactionId, name, old, row, next === 'submitted' ? 'submit' : 'cancel', reason)
@@ -173,33 +178,7 @@ export function createEntityServices(database: MockDatabase): EntityServices {
   return Object.fromEntries(entityNames.map((name) => [name, build(name)])) as EntityServices
 }
 
-export function createApprovalService(database: MockDatabase) {
-  return {
-    changeStatus: (context: RequestContext, id: string, version: number, status: WorkflowStatus, reason: string) => respond(() => commitMutation(database, async (transactionId) => {
-      workflowStatusSchema.parse(status)
-      const old = await database.entity('approvals').get(recordId.parse(id))
-      if (!old || old.municipalityId !== context.municipalityId) throw new DataError('not_found', 'Approval not found in the current municipality.')
-      const actor = await authorize(database, context, approvalResources[old.subjectType], status === 'rejected' || status === 'returned' ? 'reject' : 'approve')
-      checkVersion(old, version)
-      if (actor.id === old.requestedById) throw new DataError('forbidden', 'A requester cannot approve their own request.')
-      if (!['submitted', 'under_review'].includes(old.workflowStatus) || !['under_review', 'approved', 'rejected', 'returned'].includes(status) || old.workflowStatus === status) throw new DataError('invalid_transition', 'Invalid approval transition.')
-      const validatedReason = z.string().trim().max(4000).parse(reason)
-      if (['rejected', 'returned'].includes(status) && !validatedReason) throw new DataError('validation', 'Return or rejection requires a reason.')
-      const table = subjectTables[old.subjectType]
-      const target = await database.entity(table).get(old.subjectId)
-      if (!target || target.workflowStatus !== old.workflowStatus) throw new DataError('conflict', 'The related request changed. Reload the approval.')
-      const at = new Date().toISOString()
-      const updatedTarget = parseEntity(table, { ...target, workflowStatus: status, version: target.version + 1, updatedAt: at })
-      const event = { actorId: actor.id, actorRole: actor.role, action: status === 'returned' ? 'return' : status === 'rejected' ? 'reject' : status === 'under_review' ? 'review' : 'approve', fromStatus: old.workflowStatus, toStatus: status, reason: validatedReason, occurredAt: at }
-      const row = parseEntity('approvals', { ...old, workflowStatus: status, version: old.version + 1, updatedAt: at, history: [...old.history, event], decidedAt: ['approved', 'rejected'].includes(status) ? at : null })
-      await database.entity(table).put(updatedTarget)
-      await database.entity('approvals').put(row)
-      await writeAudit(database, actor, transactionId, table, target, updatedTarget, status, validatedReason)
-      await writeAudit(database, actor, transactionId, 'approvals', old, row, status, validatedReason)
-      return row
-    })),
-  }
-}
+export { createApprovalManagementService as createApprovalService } from './approvalService.js'
 
 export function createBatchService(database: MockDatabase) {
   return (context: RequestContext, commands: readonly MutationCommand[]) => respond(() => commitMutation(database, async (transactionId) => {

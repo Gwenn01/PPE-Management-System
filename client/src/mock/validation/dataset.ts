@@ -1,3 +1,4 @@
+import { parseRegistrationRules } from '../../domain/registration.js'
 import type { Dataset, EntityMap, EntityName } from '../../domain/data.js'
 import type { MunicipalityId } from '../../domain/models.js'
 import { permissionRules, isLockedGrant } from '../../domain/permissions.js'
@@ -79,6 +80,7 @@ export function validateDataset(input: unknown): Dataset {
     if (row.completionDate && row.completionDate < row.startDate) throw new DataError('validation', 'Project completion precedes its start.')
   }
   for (const row of data.documents) {
+    if (row.documentType && row.entityType !== 'registration') throw new DataError('validation', 'Registration document types cannot be assigned to another subject.')
     ref('users', row.uploadedById, row.municipalityId)
     ref(subjectTables[row.entityType], row.entityId, row.municipalityId)
   }
@@ -148,6 +150,7 @@ export function validateDataset(input: unknown): Dataset {
       previousStatus = event.toStatus
       previousTime = Date.parse(event.occurredAt)
     }
+    if (row.history.some((event) => event.submission && (event.action !== 'submit' || !event.submission.documentIds.every((id) => typeof id === 'string')))) throw new DataError('validation', 'Invalid approval submission snapshot.')
     if (row.history.length && row.history.at(-1)!.toStatus !== row.workflowStatus) throw new DataError('validation', 'Approval history does not match its current status.')
     if (['approved', 'rejected'].includes(row.workflowStatus) !== (row.decidedAt !== null)) throw new DataError('validation', 'Approval decision timestamps must match the workflow state.')
   }
@@ -158,6 +161,9 @@ export function validateDataset(input: unknown): Dataset {
   for (const row of data.auditLogs) ref('users', row.actorId, row.municipalityId)
   for (const row of data.settings) {
     if (row.key === 'fiscal_year' && (typeof row.value !== 'number' || row.value < 1900 || row.value > 2200)) throw new DataError('validation', 'Demo fiscal year must be an integer between 1900 and 2200.')
+    if (row.key === 'registration_document_rules') {
+      try { if (typeof row.value !== 'string') throw new Error('Rules must be JSON'); parseRegistrationRules(JSON.parse(row.value)) } catch { throw new DataError('validation', 'Invalid configured registration document requirements.') }
+    }
     if (row.key === 'demo_notice' && (typeof row.value !== 'string' || !row.value.trim())) throw new DataError('validation', 'Demo notice must contain text.')
   }
   for (const municipality of data.municipalities) {

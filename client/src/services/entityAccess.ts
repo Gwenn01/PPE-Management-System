@@ -33,14 +33,29 @@ export async function visibleRecord<K extends EntityName>(database: MockDatabase
     const route = row as EntityMap['documentRouting']
     return route.fromRole === actor.role || route.toRole === actor.role
   }
+  if (name === 'approvals') {
+    const approval = row as EntityMap['approvals']
+    if (actor.role !== 'approving_officer' || !canAccess(actor, { resource: approvalResources[approval.subjectType], action: 'read' }, actor)) return false
+    const grants = await database.entity('permissions').where('[municipalityId+role]').equals([actor.municipalityId, actor.role]).toArray()
+    return grants.some((grant) => grant.resource === approvalResources[approval.subjectType] && grant.action === 'read' && grant.scope === 'municipality')
+  }
   if (name === 'documents') {
     const document = row as EntityMap['documents']
-    const owner = subjectTables[document.entityType]
-    const target = await database.entity(owner).get(document.entityId)
-    if (!target || recordMunicipality(owner, target) !== actor.municipalityId) return false
-    if (canAccess(actor, { resource: tableResources[owner], action: 'read' }, actor)) return true
-    if (document.entityType !== 'project' && document.entityType !== 'inventory' && document.entityType !== 'cip_cost' && canAccess(actor, { resource: approvalResources[document.entityType], action: 'read' }, actor)) return true
-    return document.entityType === 'registration' && 'recognizedAssetId' in target && target.recognizedAssetId !== null && actor.role === 'auditor'
+    const ownerTable = subjectTables[document.entityType]
+    const target = await database.entity(ownerTable).get(document.entityId)
+    if (!target || recordMunicipality(ownerTable, target) !== actor.municipalityId || !target.documentIds.includes(document.id)) return false
+    const grants = await database.entity('permissions').where('[municipalityId+role]').equals([actor.municipalityId, actor.role]).toArray()
+    const hasGrant = (resource: Resource) => canAccess(actor, { resource, action: 'read' }, actor) &&
+      grants.some((grant) => grant.resource === resource && grant.action === 'read' && grant.scope === 'municipality')
+    if (actor.role === 'approving_officer') {
+      const subject = document.entityType === 'project' ? 'capitalization' : document.entityType
+      if (subject === 'inventory' || subject === 'cip_cost' || !hasGrant(approvalResources[subject])) return false
+      const linked = await database.entity('approvals').where('subjectId').equals(document.entityId).filter((approval) =>
+        approval.municipalityId === actor.municipalityId && approval.subjectType === subject && !['draft', 'cancelled'].includes(approval.workflowStatus)).first()
+      return !!linked
+    }
+    if (hasGrant(tableResources[ownerTable])) return true
+    return document.entityType === 'registration' && 'recognizedAssetId' in target && target.recognizedAssetId !== null && actor.role === 'auditor' && hasGrant('assets')
   }
   return true
 }
@@ -50,3 +65,4 @@ export async function scopedRecord<K extends EntityName>(database: MockDatabase,
   if (!record || !await visibleRecord(database, actor, name, record)) throw new DataError('not_found', 'Record not found in the current municipality or personal queue.')
   return record
 }
+

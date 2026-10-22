@@ -1,9 +1,11 @@
+import { createRegistrationService } from './registrationService.js'
+import { createApprovalManagementService } from './approvalService.js'
 import { createAdministratorService } from './administratorService.js'
 import { database, DATABASE_VERSION } from '../mock/database.js'
 import type { MockDatabase } from '../mock/database.js'
 import { createDatasetService } from './datasetService.js'
 import { createDocumentService } from './documentService.js'
-import { createApprovalService, createBatchService, createEntityServices, createIdentityStatusService, createNotificationService } from './entityService.js'
+import { createBatchService, createEntityServices, createIdentityStatusService, createNotificationService } from './entityService.js'
 import { DataError, respond } from './errors.js'
 
 /** Public composition root. No HTTP calls; future implementations can retain the DTOs. */
@@ -17,7 +19,8 @@ export function createMockDataServices(storage: MockDatabase = database) {
     }),
     entities: createEntityServices(storage),
     administration: createAdministratorService(storage),
-    approvals: createApprovalService(storage),
+    registration: createRegistrationService(storage),
+    approvals: createApprovalManagementService(storage),
     documents: createDocumentService(storage),
     users: { changeStatus: createIdentityStatusService(storage) },
     notifications: { markRead: createNotificationService(storage) },
