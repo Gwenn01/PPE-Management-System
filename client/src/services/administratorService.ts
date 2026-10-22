@@ -17,7 +17,7 @@ const email = z.email().transform((value) => value.toLowerCase())
 const fields = z.strictObject({ name: text, username: usernameSchema, email, role: z.enum(roleList), departmentId: z.string().min(1) })
 const departmentFields = z.strictObject({ code: z.string().trim().min(2).max(40), name: text })
 const categoryFields = z.strictObject({ code: z.string().trim().min(2).max(40), name: text, usefulLifeMonths: z.number().int().min(1).max(1200) })
-const policyFields = z.strictObject({ name: text, method: z.literal('straight_line'), usefulLifeMonths: z.number().int().min(1).max(1200), residualValuePercent: z.number().min(0).max(100), recognitionThreshold: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER), startConvention: z.enum(['acquisition_month', 'following_month']), effectiveFrom: z.iso.date(), active: z.boolean() })
+const policyFields = z.strictObject({ belowThresholdTreatment: z.enum(['semi_expendable', 'expense']).optional(), name: text, method: z.literal('straight_line'), usefulLifeMonths: z.number().int().min(1).max(1200), residualValuePercent: z.number().min(0).max(100).refine(v => Math.abs(v * 100 - Math.round(v * 100)) < 1e-8, 'Use at most two decimal places.'), recognitionThreshold: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER), startConvention: z.enum(['acquisition_month', 'following_month']), effectiveFrom: z.iso.date(), active: z.boolean() })
 const checked = (version: number, current: number) => { if (!Number.isInteger(version) || version < 1 || version !== current) throw new DataError('conflict', 'This record changed. Refresh and try again.') }
 
 export type UserDraft = z.infer<typeof fields>
@@ -185,7 +185,7 @@ export function createAdministratorService(db: MockDatabase = defaultDatabase) {
       const now = new Date().toISOString()
       const row: AssetCategory = parseEntity('assetCategories', { ...(old ?? { id: crypto.randomUUID(), municipalityId: ctx.municipalityId, createdAt: now }), ...draft, version: old ? old.version + 1 : 1, updatedAt: now })
       await db.entity('assetCategories').put(row)
-      await writeAudit(db, actor, tx, 'assetCategories', old, row, old ? 'edit_demo_category' : 'create_demo_category')
+      await writeAudit(db, actor, tx, 'assetCategories', old ?? null, row, old ? 'edit_demo_category' : 'create_demo_category')
       return row
     })),
     savePolicy: (ctx: RequestContext, id: string, version: number, input: PolicyDraft) => respond(() => commitMutation(db, async (tx) => {

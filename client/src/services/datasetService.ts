@@ -22,6 +22,13 @@ function sameData(a: EntityMap[EntityName], b: EntityMap[EntityName]): boolean {
 
 async function replaceScope(database: MockDatabase, actor: User, replacement: Dataset, transactionId: string, operation: 'import' | 'reset'): Promise<void> {
   const before = scopeDataset(await database.snapshot(), actor.municipalityId)
+  if (operation === 'import') {
+    for (const old of before.accountingRecords) {
+      const incoming = replacement.accountingRecords.find(row => row.id === old.id)
+      if (!incoming || !sameData(old, incoming)) throw new DataError('conflict', 'Authorized accounting history cannot be removed or rewritten by import.')
+    }
+    if (replacement.accountingRecords.some(row => row.recognitionDetails && !before.accountingRecords.some(old => old.id === row.id))) throw new DataError('validation', 'Authorize recognition through Accounting Review, not dataset import.')
+  }
   const at = new Date().toISOString()
   // Audit history survives replacements. An import cannot rewrite an existing audit event.
   const incomingLogs = new Map(replacement.auditLogs.map((row) => [row.id, row]))

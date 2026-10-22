@@ -1,3 +1,4 @@
+import { createAccountingService } from './accountingService.js'
 import { createRegistrationService } from './registrationService.js'
 import { createApprovalManagementService } from './approvalService.js'
 import { createAdministratorService } from './administratorService.js'
@@ -19,7 +20,7 @@ export function createMockDataServices(storage: MockDatabase = database) {
     }),
     entities: createEntityServices(storage),
     administration: createAdministratorService(storage),
-    registration: createRegistrationService(storage),
+    registration: createRegistrationService(storage), accounting: createAccountingService(storage),
     approvals: createApprovalManagementService(storage),
     documents: createDocumentService(storage),
     users: { changeStatus: createIdentityStatusService(storage) },
@@ -31,4 +32,3 @@ export function createMockDataServices(storage: MockDatabase = database) {
 
 export type MockDataServices = ReturnType<typeof createMockDataServices>
 export const mockDataServices = createMockDataServices()
-

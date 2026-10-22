@@ -51,7 +51,7 @@ export default function ApprovalManagementModule({ module }: { module: string })
     if (result.ok) { setRows(result.data); setError('') } else setError(result.error.message)
     setLoading(false)
   }, [requestContext])
-  useEffect(() => { void refresh() }, [refresh])
+  useEffect(() => { void Promise.resolve().then(refresh) }, [refresh])
   const selected = rows.find((row) => row.approval.id === selectedId) ?? null
   const filtered = useMemo(() => rows.filter((row) => {
     const a = row.approval

@@ -142,7 +142,7 @@ export function createApprovalManagementService(db: MockDatabase = defaultDataba
     })),
     /** Compatibility with Phase 02/03 call sites; same transaction and transition engine. */
     changeStatus: (ctx: RequestContext, id: string, version: number, status: WorkflowStatus, reason: string) => {
-      const decision = ({ submitted: null, under_review: 'review', approved: 'approve', returned: 'return', rejected: 'reject' } as Partial<Record<WorkflowStatus, ApprovalDecision>>)[status]
+      const decision = ({ submitted: undefined, under_review: 'review', approved: 'approve', returned: 'return', rejected: 'reject' } as Partial<Record<WorkflowStatus, ApprovalDecision>>)[status]
       if (!decision) return respond(async () => { throw new DataError('invalid_transition', 'Use a supported approval decision.') })
       return respond(async () => {
         const result = await createApprovalManagementService(db).decide(ctx, { id, version, decision, remarks: reason })

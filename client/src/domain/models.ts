@@ -185,7 +185,19 @@ export interface DisposalRequest extends WorkflowEntity {
   accountingRecordId: EntityId | null
 }
 
+export interface RecognitionDetails {
+  treatment: 'depreciable_ppe' | 'non_depreciable_ppe' | 'semi_expendable' | 'expense'
+  cost: Money
+  residualValue: Money
+  usefulLifeMonths: number
+  startDate: string
+  startConvention: 'acquisition_month' | 'following_month'
+  reason: string
+  policySnapshot: string
+}
+
 export interface AccountingRecord extends ScopedEntity {
+  recognitionDetails?: RecognitionDetails
   assetId: EntityId | null
   projectId: EntityId | null
   sourceId: EntityId
@@ -201,6 +213,7 @@ export interface AccountingRecord extends ScopedEntity {
 
 /** Configurable demo assumptions; never a representation of legally verified policy. */
 export interface DepreciationPolicy extends ScopedEntity {
+  belowThresholdTreatment?: 'semi_expendable' | 'expense'
   name: string
   isDemo: true
   method: 'straight_line'

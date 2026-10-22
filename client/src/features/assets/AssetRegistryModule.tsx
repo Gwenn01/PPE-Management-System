@@ -49,7 +49,7 @@ export default function AssetRegistryModule({ module }: { module: 'assets' | 'as
     setLoading(false)
     return result.ok ? result.data : null
   }, [requestContext.sessionId, requestContext.actor.id, requestContext.municipalityId])
-  useEffect(() => { void reload() }, [reload])
+  useEffect(() => { void Promise.resolve().then(reload) }, [reload])
   const current = data?.registrations.find((r) => r.id === (viewRequest ?? activeId))
   const update = <K extends keyof RegistrationDraft>(key: K, value: RegistrationDraft[K]) => setDraft((prev) => ({ ...prev, [key]: value }))
   const named = (id: string | null) => data?.users.find((u) => u.id === id)?.name ?? (id ? 'Unassigned user' : 'Not assigned')

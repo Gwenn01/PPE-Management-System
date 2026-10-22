@@ -1,4 +1,5 @@
 import { parseRegistrationRules } from '../../domain/registration.js'
+import { depreciationSchedule } from '../../domain/accounting.js'
 import type { Dataset, EntityMap, EntityName } from '../../domain/data.js'
 import type { MunicipalityId } from '../../domain/models.js'
 import { permissionRules, isLockedGrant } from '../../domain/permissions.js'
@@ -111,6 +112,14 @@ export function validateDataset(input: unknown): Dataset {
     for (const id of [row.fromCustodianId, row.toCustodianId]) ref('users', id, row.municipalityId)
   }
   for (const row of data.accountingRecords) {
+    if (row.recognitionDetails) {
+      const details = row.recognitionDetails
+      depreciationSchedule(details, details.startDate)
+      if (row.kind !== 'recognition' || details.cost !== row.debit || row.credit !== 0 || details.startDate !== row.postingDate || row.accountCode !== details.treatment) throw new DataError('validation', 'Recognition details and authorized accounting values disagree.')
+      const asset = ref('assets', row.assetId, row.municipalityId)
+      if (!asset || asset.acquisitionCost !== details.cost || asset.registrationId !== row.sourceId || asset.recognitionStatus !== 'recognized') throw new DataError('validation', 'Recognition requires matching asset accounting status and acquisition cost.')
+      if (data.accountingRecords.filter(r => r.assetId === row.assetId && r.kind === 'recognition').length !== 1) throw new DataError('validation', 'Duplicate asset recognition.')
+    }
     ref('users', row.postedById, row.municipalityId)
     const policy = ref('depreciationPolicies', row.policyId, row.municipalityId)
     if ((row.policyId === null) !== (row.policyVersion === null) || (policy && row.policyVersion! > policy.version)) throw new DataError('validation', 'Invalid accounting policy version.')

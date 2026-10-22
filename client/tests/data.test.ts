@@ -155,9 +155,17 @@ describe('persistent mock data layer', () => {
     assert.equal('submit' in services.entities.registrations, true)
   })
 
+  async function attachRegistrationDocuments(id: string) {
+    for (const documentType of ['purchase_order', 'inspection_acceptance_report', 'property_acknowledgement_receipt'] as const) {
+      success(await services.documents.upload(property, { entityType: 'registration', entityId: id, documentType, fileName: documentType + '.pdf', file: new Blob(['%PDF-1.7 Demo'], { type: 'application/pdf' }) }))
+    }
+    return (await db.entity('registrations').get(id))!
+  }
+
   it('submits requests and creates linked approvals, notifications and audits atomically', async () => {
     const draft = success(await services.entities.registrations.create(property, registrationInput))
-    const submitted = success(await services.entities.registrations.submit(property, draft.id, 1))
+    const attached = await attachRegistrationDocuments(draft.id)
+    const submitted = success(await services.entities.registrations.submit(property, draft.id, attached.version))
     assert.equal(submitted.workflowStatus, 'submitted')
     const approval = (await db.entity('approvals').where('subjectId').equals(draft.id).toArray())[0]
     assert.equal(approval.workflowStatus, 'submitted')
@@ -178,14 +186,15 @@ describe('persistent mock data layer', () => {
     assert.equal(returned.history.at(-1)!.action, 'return')
     const source = success(await services.entities.registrations.getById(property, returned.subjectId))
     assert.equal(source.workflowStatus, 'returned')
-    const corrected = success(await services.entities.registrations.update(property, source.id, source.version, { description: 'Corrected fictional tablet details' }))
+    success(await services.entities.registrations.update(property, source.id, source.version, { description: 'Corrected fictional tablet details' }))
+    const corrected = await attachRegistrationDocuments(source.id)
     success(await services.entities.registrations.submit(property, source.id, corrected.version))
     const resubmitted = (await db.entity('approvals').get(approvalId))!
     const approved = success(await services.approvals.changeStatus(approver, approvalId, resubmitted.version, 'approved', 'Demo review complete'))
     assert.equal(approved.history.at(-1)!.action, 'approve')
     assert.equal((await db.entity('registrations').get(source.id))!.workflowStatus, 'approved')
     error(await services.approvals.changeStatus(approver, approvalId, approved.version, 'returned', 'Too late'), 'invalid_transition')
-    assert.equal((await db.entity('registrations').get(source.id))!.recognizedAssetId, null)
+    assert.ok((await db.entity('registrations').get(source.id))!.recognizedAssetId)
   })
 
   it('cancels linked approvals consistently and rejects unsupported direct approval transitions', async () => {
@@ -327,8 +336,7 @@ describe('persistent mock data layer', () => {
   })
 
   it('archives removed historical actors during reset so their audit records remain resolvable', async () => {
-    const pending = success(await services.entities.users.create(admin, { name: 'Fictional Temporary Officer', username: 'temporary_officer', email: 'temporary@example.com', role: 'property_officer', departmentId: 'botolan-dept-general' }))
-    const actor = success(await services.users.changeStatus(admin, pending.id, pending.version, 'active'))
+    const actor = success(await services.administration.createUser(admin, { name: 'Fictional Temporary Officer', username: 'temporary_officer', email: 'temporary@example.com', role: 'property_officer', departmentId: 'botolan-dept-general' }))
     const request = success(await services.entities.registrations.create(await fixtureSession(db, actor), registrationInput))
     const preview = success(await services.dataset.prepareReset(admin))
     success(await services.dataset.reset(admin, { confirmationId: preview.confirmationId, confirmationText: preview.confirmationText }))
@@ -400,7 +408,7 @@ describe('persistent mock data layer', () => {
     error(await services.documents.upload(engineer, { ...upload, fileName: '../plan.pdf' }), 'validation')
     error(await services.documents.upload(engineer, { ...upload, entityId: 'san_antonio-project-hall' }), 'not_found')
     error(await services.documents.upload(context('auditor'), upload), 'forbidden')
-    error(await services.documents.upload(property, { ...upload, entityType: 'registration', entityId: 'botolan-registration-pending' }), 'invalid_transition')
+    error(await services.documents.upload(property, { ...upload, entityType: 'registration', documentType: 'purchase_order', entityId: 'botolan-registration-pending' }), 'invalid_transition')
     error(await services.documents.download(engineer, 'botolan-document-plan'), 'not_found')
     assert.equal(await db.blobs.count(), 0)
     assert.equal(await db.entity('documents').count(), 2)
