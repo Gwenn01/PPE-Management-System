@@ -80,7 +80,7 @@ export default function RegisterPage() {
       blurb="Register to start recording, approving, and reporting on local government assets. Your role and access are confirmed by an administrator."
     >
       <h1 className="text-2xl font-bold text-charcoal">Sign up</h1>
-      <p className="mt-4 rounded-lg border border-line bg-mist p-3 text-xs leading-5 text-charcoal"><strong className="text-navy">DEMO ONLY.</strong> Use fictional names and emails. Every demo account uses the public password <code className="font-semibold">{DEMO_PASSWORD}</code>. No personal passwords are stored. This is not production authentication.</p>
+      <p className="mt-4 rounded-lg border border-line bg-mist p-3 text-xs leading-5 text-charcoal"><strong className="text-navy">Account request.</strong> Use non-personal details. Accounts use the shared password <code className="font-semibold">{DEMO_PASSWORD}</code>. No personal passwords are stored. Do not use personal credentials. Requests are stored in this browser.</p>
       {!options && !loadError && <p className="mt-4 text-sm text-gray" role="status">Loading municipalities and departments…</p>}
       {loadError && <p className="mt-4 text-sm text-red-700" role="alert">{loadError} <button type="button" className="font-semibold text-navy underline" onClick={() => { setLoadError(''); setAttempt((value) => value + 1) }}>Retry</button></p>}
 
@@ -88,7 +88,7 @@ export default function RegisterPage() {
         <h2 className="font-bold text-navy">Account request saved — Pending</h2>
         <p className="mt-3 text-sm leading-6 text-charcoal">Your request for <strong>{registered.username}</strong> is stored in this browser. A {registered.municipalityId === 'botolan' ? 'Botolan' : 'San Antonio'} Administrator must approve it in Users before you can sign in. No session was created.</p>
         <Link to="/login" className="mt-4 inline-block rounded-full bg-navy px-6 py-2 text-sm font-semibold text-white">Return to sign in</Link>
-        <button type="button" className="mt-3 block text-sm font-semibold text-navy underline" onClick={() => setRegistered(null)}>Submit another fictional request</button>
+        <button type="button" className="mt-3 block text-sm font-semibold text-navy underline" onClick={() => setRegistered(null)}>Submit another request</button>
       </section> : <form onSubmit={(event) => { void handleSubmit(event) }} noValidate className="mt-8" aria-busy={busy}>
         <fieldset disabled={busy || !options}>
         <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2">
@@ -97,12 +97,12 @@ export default function RegisterPage() {
             label="Full name"
             name="fullName"
             autoComplete="name"
-            placeholder="Fictional Municipal Officer"
+            placeholder="Municipal Officer"
             value={form.fullName}
             onChange={update('fullName')}
             error={errors.fullName}
           />
-          <TextField wrapperClassName="sm:col-span-2" label="Username" name="username" autoComplete="username" placeholder="demo.officer" value={form.username} onChange={update('username')} error={errors.username} />
+          <TextField wrapperClassName="sm:col-span-2" label="Username" name="username" autoComplete="username" placeholder="municipal.officer" value={form.username} onChange={update('username')} error={errors.username} />
           <TextField
             wrapperClassName="sm:col-span-2"
             label="Email"
@@ -134,7 +134,7 @@ export default function RegisterPage() {
             error={errors.requestedRole}
           />
           <TextField
-            label="Demo password"
+            label="Account password"
             name="demoPassword"
             type="password"
             autoComplete="off"
@@ -144,17 +144,17 @@ export default function RegisterPage() {
             error={errors.demoPassword}
           />
           <TextField
-            label="Confirm demo password"
+            label="Confirm account password"
             name="confirmDemoPassword"
             type="password"
             autoComplete="off"
-            placeholder="Repeat the public demo password"
+            placeholder="Repeat the shared password"
             value={form.confirmDemoPassword}
             onChange={update('confirmDemoPassword')}
             error={errors.confirmDemoPassword}
           />
         </div>
-        <label className="mt-6 flex items-start gap-2 text-xs leading-5 text-charcoal"><input type="checkbox" checked={form.demoAcknowledged} onChange={(event) => setForm((previous) => ({ ...previous, demoAcknowledged: event.target.checked }))} className="mt-1 accent-navy" aria-describedby={errors.demoAcknowledged ? 'demo-ack-error' : undefined} aria-invalid={!!errors.demoAcknowledged} />I am using fictional details and understand this is a frontend-only demo.</label>
+        <label className="mt-6 flex items-start gap-2 text-xs leading-5 text-charcoal"><input type="checkbox" checked={form.demoAcknowledged} onChange={(event) => setForm((previous) => ({ ...previous, demoAcknowledged: event.target.checked }))} className="mt-1 accent-navy" aria-describedby={errors.demoAcknowledged ? 'demo-ack-error' : undefined} aria-invalid={!!errors.demoAcknowledged} />I am using non-personal details and understand account requests are stored in this browser.</label>
         {errors.demoAcknowledged && <p id="demo-ack-error" className="mt-1 text-xs text-red-700">{errors.demoAcknowledged}</p>}
         {message && <p className="mt-4 text-sm text-red-700" role="alert">{message}</p>}
         {!message && Object.keys(errors).length > 0 && <p className="mt-4 text-sm text-red-700" role="alert">Review the highlighted fields before submitting.</p>}

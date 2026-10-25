@@ -31,7 +31,7 @@ export default function CurrentUserProvider({
     const result = await authClient.restore()
     if (revision !== generation.current) return
     if (result.ok) {
-      if (current.current && !result.data) setNotice('Your demo session ended. Sign in again.')
+      if (current.current && !result.data) setNotice('Your session ended. Sign in again.')
       apply(result.data)
     } else {
       current.current = null; setSession(null); setStatus('error'); setError(result.error.message)
@@ -65,12 +65,12 @@ export default function CurrentUserProvider({
     const result = await authClient.login(request)
     if (revision === generation.current) {
       apply(result.ok ? result.data : null)
-      if (result.ok) setNotice('Signed in to the frontend-only demo.')
+      if (result.ok) setNotice('Signed in successfully.')
     }
     changing.current = false
     return result
   }, [apply])
-  const logout = useCallback(async (message = 'You have signed out of the demo.') => {
+  const logout = useCallback(async (message = 'You have signed out.') => {
     ++generation.current; changing.current = true
     const id = current.current?.sessionId
     apply(null); setNotice(message)
@@ -82,7 +82,7 @@ export default function CurrentUserProvider({
   const switchAccount = useCallback(async (id: string) => {
     const revision = ++generation.current; changing.current = true
     const result = await authClient.switchAccount(id)
-    if (revision === generation.current && result.ok) { apply(result.data); setNotice('Development-only demo account switched.') }
+    if (revision === generation.current && result.ok) apply(result.data)
     changing.current = false
     if (!result.ok) await refreshSession()
     return result

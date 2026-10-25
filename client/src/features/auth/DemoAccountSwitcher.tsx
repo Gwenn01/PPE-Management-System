@@ -23,7 +23,7 @@ export default function DemoAccountSwitcher() {
   return <div className="text-xs text-gray">
     <label className="flex flex-wrap items-center gap-2">
       <span className="rounded bg-chip px-2 py-0.5 font-semibold text-navy">DEV ONLY</span>
-      <select aria-label="Switch development demo account" value={accounts.some((account) => account.id === user.id) ? user.id : ''} disabled={busy || !accounts.length} className="w-44 max-w-full rounded border border-line bg-white px-2 py-1.5 text-xs text-charcoal focus:border-navy" onChange={(event) => {
+      <select aria-label="Switch development account" value={accounts.some((account) => account.id === user.id) ? user.id : ''} disabled={busy || !accounts.length} className="w-44 max-w-full rounded border border-line bg-white px-2 py-1.5 text-xs text-charcoal focus:border-navy" onChange={(event) => {
         const id = event.target.value
         setBusy(true); setError('')
         void switchAccount(id).then((result) => {

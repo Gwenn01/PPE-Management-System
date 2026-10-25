@@ -1,6 +1,6 @@
-# Phase 16 interactive acceptance checklist
+# Phase 17 UI and interactive acceptance checklist
 
-Status: NOT EXECUTED. Browser runtime returned `No browser is available`; connected-browser discovery returned `[]`. This checklist is a remaining acceptance gate, not automated E2E evidence.
+Status: Automated checks passed; interactive browser acceptance is NOT EXECUTED. The connected browser runtime reported no available browser (`[]`). This checklist remains a manual acceptance gate, not automated E2E evidence.
 
 Use fictional data and a separate browser profile/origin. Run `npm run dev`, then repeat production-sensitive checks with `npm run build` and `npm run preview`. Test both municipalities and all eight accounts listed in README. Record browser/version, viewport, actual result, screenshot/error and date for each check.
 
@@ -19,6 +19,9 @@ Use fictional data and a separate browser profile/origin. Run `npm run dev`, the
 | Persistence/data tools | Hard refresh and browser reopen after mutations; export JSON, validate/import unchanged export, reject malformed/foreign/stale protected data; reset wrong/correct/expired phrase, retained audit and other municipality, revoked session; JSON excludes attachment binaries |
 | Exports/calculations | Open generated PDF/XLSX in viewers; verify headings, dates, municipality, all rows across preview pages and centavo totals against records; long text and spreadsheet formula-like input; no print clipping |
 | Responsive | 360, 768, 1024 and 1440px widths; 200% zoom; no inaccessible controls, overlapping dialogs or unintended page overflow; tables can scroll horizontally |
+| Dashboard scrolling | At every role, long page content scrolls in the main region while sidebar and topbar remain fixed; short viewports allow sidebar navigation to scroll independently with branding and role footer available |
+| Mobile navigation | At 320, 360, 375, 390 and 430px, open drawer; verify backdrop, body scroll lock, independent drawer scrolling, link/outside/Escape dismissal, focus containment and focus return |
+| Full viewport matrix | Check 320×700, 360×800, 390×844, 430×932, 768×1024, 820×900, 1024×768, 1280×720, 1366×768, 1440×900 and 1920×1080 across all eight roles and each accessible module |
 | Accessibility | Keyboard-only completion, skip link, visible focus, menu/dialog focus containment/restoration, Escape, labels/errors/live statuses, sortable headers/pagination, contrast, screen reader and reduced motion |
 | Runtime | Observe browser console/network through every flow; no uncaught exceptions, broken imports/assets, accidental business HTTP calls or duplicate submissions; verify production account switcher unavailable |
 

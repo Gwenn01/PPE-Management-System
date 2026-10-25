@@ -44,8 +44,10 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
 
       <aside
         ref={sidebarRef}
+        id="dashboard-sidebar"
         aria-label="Main navigation"
-        className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-line bg-white transition-transform duration-200 lg:static lg:z-auto lg:w-64 lg:translate-x-0 lg:transition-none ${
+        aria-modal={open ? true : undefined}
+        className={`fixed inset-y-0 left-0 z-50 flex h-dvh w-72 max-w-[85vw] flex-col border-r border-line bg-white transition-transform duration-200 lg:static lg:z-auto lg:h-dvh lg:w-64 lg:max-w-none lg:shrink-0 lg:translate-x-0 lg:transition-none ${
           open ? 'visible translate-x-0' : 'invisible -translate-x-full lg:visible'
         }`}
       >
@@ -68,7 +70,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-3 py-4">
+        <nav className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-3 py-4">
           {groups.map(({ group, items }) => (
             <div key={group} className="mb-5">
               <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-gray">

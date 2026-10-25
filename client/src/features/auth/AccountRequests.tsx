@@ -44,8 +44,8 @@ export default function AccountRequests() {
   const filtered = requests.filter((request) => `${request.name} ${request.username} ${request.email} ${roleLabels[request.role]}`.toLowerCase().includes(search.toLowerCase()))
   const totalPages = Math.max(1, Math.ceil(filtered.length / 10))
   const currentPage = Math.min(page, totalPages)
-  return <section className="mt-8 space-y-4" aria-labelledby="account-requests-heading" aria-busy={loading || busy}>
-    <div><h3 id="account-requests-heading" className="text-lg font-bold text-navy">Pending account requests — {session.municipality.name}</h3><p className="mt-2 text-sm text-charcoal">Approve or reject fictional account requests for this municipality. New requests cannot sign in until approved.</p></div>
+  return <section className="space-y-4" aria-labelledby="account-requests-heading" aria-busy={loading || busy}>
+    <div><h3 id="account-requests-heading" className="text-lg font-bold text-navy">Pending account requests — {session.municipality.name}</h3><p className="mt-2 text-sm text-charcoal">Approve or reject account requests for this municipality. New requests cannot sign in until approved.</p></div>
     <label className="block text-xs font-semibold text-gray">Search requests<input type="search" value={search} onChange={(event) => { setSearch(event.target.value); setPage(1) }} className="mt-1 block w-full rounded-lg border border-line p-2 text-sm text-charcoal focus:border-navy" /></label>
     {loading && <p role="status" className="text-sm text-gray">Loading account requests…</p>}
     {notice && <p role="status" className="text-sm text-navy">{notice}</p>}

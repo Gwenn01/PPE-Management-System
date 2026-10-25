@@ -15,8 +15,8 @@ export default function RequireSession({ children, permission, municipalityId, r
   if (access === 'loading' || access === 'error') return (
     <main className="flex min-h-svh items-center justify-center bg-mist p-6">
       <section className="max-w-lg rounded-2xl border border-line bg-white p-8" role={access === 'error' ? 'alert' : 'status'}>
-        <h1 className="text-xl font-bold text-navy">{access === 'loading' ? 'Restoring demo session…' : 'Demo session unavailable'}</h1>
-        {access === 'error' && <><p className="mt-3 text-sm text-charcoal">{auth.error}</p><div className="mt-4 flex flex-wrap gap-3"><button type="button" onClick={() => { void auth.refreshSession() }} className="rounded-lg bg-navy px-4 py-2 text-sm font-semibold text-white">Retry session</button><button type="button" onClick={() => { void auth.logout('Demo session cleared. Sign in again.') }} className="rounded-lg border border-line px-4 py-2 text-sm text-navy">Clear session and sign in</button></div></>}
+        <h1 className="text-xl font-bold text-navy">{access === 'loading' ? 'Restoring your session…' : 'Session unavailable'}</h1>
+        {access === 'error' && <><p className="mt-3 text-sm text-charcoal">{auth.error}</p><div className="mt-4 flex flex-wrap gap-3"><button type="button" onClick={() => { void auth.refreshSession() }} className="rounded-lg bg-navy px-4 py-2 text-sm font-semibold text-white">Retry session</button><button type="button" onClick={() => { void auth.logout('Session cleared. Sign in again.') }} className="rounded-lg border border-line px-4 py-2 text-sm text-navy">Clear session and sign in</button></div></>}
       </section>
     </main>
   )

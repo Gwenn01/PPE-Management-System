@@ -166,7 +166,7 @@ export function createDatasetService(database: MockDatabase): DatasetTools {
       if (!state) throw new DataError('storage_unavailable', 'Database state is unavailable.')
       for (const [id, challenge] of challenges) if (Date.parse(challenge.expiresAt) <= Date.now()) challenges.delete(id)
       const challenge: ResetChallenge = {
-        confirmationId: crypto.randomUUID(), confirmationText: `RESET ${actor.municipalityId.toUpperCase()} DEMO DATA`,
+        confirmationId: crypto.randomUUID(), confirmationText: `RESET ${actor.municipalityId.toUpperCase()} LOCAL RECORDS`,
         expiresAt: new Date(Date.now() + datasetLimits.resetExpiryMs).toISOString(),
         recordCount: count(scopeDataset(await database.snapshot(), actor.municipalityId)),
         attachmentCount: await database.blobs.where('municipalityId').equals(actor.municipalityId).count(),

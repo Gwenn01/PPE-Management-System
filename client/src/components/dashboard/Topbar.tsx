@@ -3,10 +3,10 @@ import { LogOut, Menu } from 'lucide-react'
 import { navItems } from '../../config/navigation'
 import { roleLabels } from '../../config/roles'
 import { useAuthenticatedUser } from '../../hooks/useAuthenticatedUser'
-import DemoAccountSwitcher from '../../features/auth/DemoAccountSwitcher'
 
 type TopbarProps = {
   onMenuClick: () => void
+  menuOpen: boolean
 }
 
 function initials(name: string) {
@@ -18,7 +18,7 @@ function initials(name: string) {
     .toUpperCase()
 }
 
-export default function Topbar({ onMenuClick }: TopbarProps) {
+export default function Topbar({ onMenuClick, menuOpen }: TopbarProps) {
   const { user, session, logout } = useAuthenticatedUser()
   const { pathname } = useLocation()
   const navigate = useNavigate()
@@ -39,7 +39,9 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
         <button
           type="button"
           onClick={onMenuClick}
-          aria-label="Open menu"
+          aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={menuOpen}
+          aria-controls="dashboard-sidebar"
           className="rounded p-2 text-charcoal hover:bg-mist focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy lg:hidden"
         >
           <Menu className="h-5 w-5" />
@@ -50,10 +52,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
       </div>
 
       <div className="flex items-center gap-3 sm:gap-4">
-        {import.meta.env.DEV && <div className="hidden sm:block"><DemoAccountSwitcher /></div>}
-        <span className="hidden rounded bg-chip px-2 py-0.5 text-[10px] font-semibold text-navy sm:inline">DEMO ONLY</span>
-
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <div
             aria-hidden="true"
             className="flex h-9 w-9 items-center justify-center rounded-full bg-navy text-xs font-bold text-white"

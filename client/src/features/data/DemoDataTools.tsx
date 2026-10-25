@@ -35,7 +35,7 @@ export default function DemoDataTools() {
   const run = async (operation: () => Promise<string>) => {
     setBusy(true); setError(''); setNotice('')
     try { setNotice(await operation()) } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'The demo data operation failed.')
+      setError(reason instanceof Error ? reason.message : 'The data operation failed.')
     } finally { setBusy(false) }
   }
   const button = 'rounded-lg bg-navy px-4 py-2 text-sm font-semibold text-white hover:bg-navy-dark disabled:cursor-not-allowed disabled:opacity-50'
@@ -43,8 +43,8 @@ export default function DemoDataTools() {
   return (
     <section className="mt-8 space-y-6 rounded-xl border border-line bg-mist p-5 sm:p-6" aria-labelledby="demo-data-heading" aria-busy={busy}>
       <div>
-        <h3 id="demo-data-heading" className="text-lg font-bold text-navy">Demo data — {municipality}</h3>
-        <p className="mt-2 text-sm leading-6 text-charcoal">Manage fictional records stored in this browser. All operations apply to {municipality}. Accounting settings are demo assumptions and are not legally verified.</p>
+        <h3 id="demo-data-heading" className="text-lg font-bold text-navy">Data management · {municipality}</h3>
+        <p className="mt-2 text-sm leading-6 text-charcoal">Manage records stored in this browser for {municipality}. Configured accounting settings are reference values and should be reviewed against applicable policy.</p>
         <p className="mt-2 text-xs leading-5 text-gray">JSON exports contain records and document metadata. Uploaded files are stored separately in IndexedDB and are not included in the export.</p>
       </div>
       <fieldset disabled={busy} className="space-y-5">
@@ -68,7 +68,7 @@ export default function DemoDataTools() {
           <button type="button" disabled={!file || !replaceConfirmed} className={button} onClick={() => { void run(async () => {
             if (!file || file.size > datasetLimits.maxJsonBytes) throw new Error('Choose a JSON file up to 10 MiB.')
             const imported = unwrap(await mockDataServices.dataset.importJson(context, await file.text()))
-            await logout(`Imported ${imported.imported} demo records. Sign in again after replacing identity data.`)
+            await logout(`Imported ${imported.imported} records. Sign in again after replacing identity data.`)
             setFile(null); setReplaceConfirmed(false)
             if (fileInput.current) fileInput.current.value = ''
             return `Imported ${imported.imported} ${municipality} records. Existing audit history was retained.`
@@ -81,11 +81,11 @@ export default function DemoDataTools() {
           }) }}>Preview seed reset</button>
         </div>
       </fieldset>
-      <p className="text-sm text-navy" role="status" aria-live="polite">{busy ? 'Processing demo records…' : notice}</p>
+      <p className="text-sm text-navy" role="status" aria-live="polite">{busy ? 'Processing records…' : notice}</p>
       {error && !challenge && <p className="text-sm text-red-700" role="alert">{error}</p>}
       <dialog ref={dialog} aria-labelledby="demo-reset-heading" onCancel={(event) => { if (busy) event.preventDefault(); else setChallenge(null) }} className="m-auto w-[calc(100%_-_2rem)] max-w-lg rounded-2xl border border-line bg-white p-6 text-charcoal backdrop:bg-charcoal/40">
         {challenge && <>
-          <h3 id="demo-reset-heading" className="text-lg font-bold text-navy">Reset {municipality} demo records?</h3>
+          <h3 id="demo-reset-heading" className="text-lg font-bold text-navy">Reset {municipality} records?</h3>
           <p className="mt-3 text-sm leading-6">{challenge.warning}</p>
           <p className="mt-2 text-sm">Current scope: {challenge.recordCount} records and {challenge.attachmentCount} uploaded files. This confirmation expires in five minutes and becomes stale if records change.</p>
           <label htmlFor="demo-reset-text" className="mt-4 block text-sm font-semibold text-navy">Type {challenge.confirmationText}</label>
@@ -95,10 +95,10 @@ export default function DemoDataTools() {
             <button type="button" disabled={busy} className="rounded-lg border border-line px-4 py-2 text-sm" onClick={() => { setChallenge(null); setError('') }}>Cancel</button>
             <button type="button" disabled={busy || confirmationText !== challenge.confirmationText} className={button} onClick={() => { void run(async () => {
               const restored = unwrap(await mockDataServices.dataset.reset(context, { confirmationId: challenge.confirmationId, confirmationText }))
-              await logout(`Restored ${restored.restored} demo seed records. Sign in again after the reset.`)
+              await logout(`Restored ${restored.restored} records. Sign in again after the reset.`)
               setChallenge(null); setConfirmationText('')
               return `Restored ${restored.restored} ${municipality} seed records. Audit history was retained.`
-            }) }}>{busy ? 'Resetting…' : 'Reset demo records'}</button>
+            }) }}>{busy ? 'Resetting…' : 'Reset local records'}</button>
           </div>
         </>}
       </dialog>

@@ -15,7 +15,7 @@ function load(): Promise<AuthService> {
 /** Lazy browser adapter. Import/type loading failures are handled as structured results. */
 async function invoke<T>(operation: (service: AuthService) => Promise<ServiceResult<T>>): Promise<ServiceResult<T>> {
   try { return await operation(await load()) } catch {
-    return { ok: false, error: { code: 'storage_unavailable', message: 'Demo authentication could not load. Check browser storage or reload and retry.' } }
+    return { ok: false, error: { code: 'storage_unavailable', message: 'Account services could not load. Check browser storage or reload and retry.' } }
   }
 }
 // Explicit forwarding keeps public request/response types independent of Dexie.

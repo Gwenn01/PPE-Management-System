@@ -22,9 +22,9 @@ Session references use sessionStorage (unchecked Remember Me, up to 12 hours) or
 
 All amounts are integer centavos. Currency formatting divides by 100; depreciation uses recorded demo policy snapshots. Forecast depreciation is distinct from posted accounting balances. Reports expose their period/status filters and use the same authorized snapshot shape for preview and export.
 
-## Demo accounts and role/module matrix
+## Seeded test accounts and role/module matrix
 
-Choose either municipality on Login. All seeded accounts use the public password **PPE-DEMO-2026**. The Login account selector fills credentials. Authentication and client-side permissions are mock behavior and provide no production security.
+Use the municipality-specific seeded accounts below to test each role. The listed usernames are the same in Botolan and San Antonio; select the intended municipality on Login and enter the username manually. All 16 active seeded accounts use the shared test password **PPE-DEMO-2026**. Authentication and client-side permissions are browser-local mock behavior and are not production security controls. To change accounts, sign out and use the Login page; the development account-switching utility is not rendered in the application.
 
 | Role | Username | Modules/responsibilities |
 | --- | --- | --- |
@@ -37,7 +37,7 @@ Choose either municipality on Login. All seeded accounts use the public password
 | Engineering Office | engineering_office | Assigned construction projects, Engineering documentation/progress and forwarding |
 | Budget Office | budget_office | Assigned construction projects, voucher/fund classification and document routing |
 
-Every role has a municipality-specific dashboard. Administrator has no automatic business-approval override or cross-municipality access. Stored grants can narrow the central role allowlist. Auditor mutations are forbidden. Development-only account switching is hidden/rejected in production; the public demo login selector remains intentional.
+Every role has a municipality-specific dashboard. Administrator has no automatic business-approval override or cross-municipality access. Stored grants can narrow the central role allowlist. Auditor mutations are forbidden. Use the regular sign-out and sign-in flow when changing identities.
 
 ## Workflow walkthroughs
 

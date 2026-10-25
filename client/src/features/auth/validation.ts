@@ -5,7 +5,7 @@ import { municipalityIdSchema, usernameSchema } from '../../mock/validation/sche
 
 export const loginSchema = z.strictObject({
   login: z.string().trim().min(1, 'Enter your email or username.').max(254),
-  password: z.string().min(1, 'Enter the public demo password.').max(100),
+  password: z.string().min(1, 'Enter your password.').max(100),
   municipalityId: z.enum(municipalityIdSchema.options, 'Select a municipality.'),
   remember: z.boolean(),
 })

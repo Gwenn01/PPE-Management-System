@@ -28,7 +28,7 @@ export function createAuthService(database: MockDatabase, stores: SessionStores,
     const municipality = await database.entity('municipalities').get(user.municipalityId)
     const permissions = (await database.entity('permissions').where('[municipalityId+role]').equals([user.municipalityId, user.role]).toArray())
       .filter((permission) => permission.scope === 'municipality' && hasRolePermission(user.role, permission))
-    if (!municipality || !permissions.some((permission) => permission.resource === 'dashboard' && permission.action === 'read')) throw new DataError('forbidden', 'Municipality or demo permissions could not be loaded. Ask a demo Administrator to review the data.')
+    if (!municipality || !permissions.some((permission) => permission.resource === 'dashboard' && permission.action === 'read')) throw new DataError('forbidden', 'Municipality or account permissions could not be loaded. Ask an Administrator to review the account.')
     if (user.departmentId) {
       const department = await database.entity('departments').get(user.departmentId)
       if (!department?.active || department.municipalityId !== user.municipalityId) throw new DataError('forbidden', 'The assigned department is unavailable in this municipality.')
@@ -41,7 +41,7 @@ export function createAuthService(database: MockDatabase, stores: SessionStores,
     const record: DemoSessionRecord = { id: crypto.randomUUID(), userId: user.id, municipalityId: user.municipalityId, role: user.role, issuedAt: at, expiresAt: new Date(Date.now() + (remember ? demoSessionLifetime.remembered : demoSessionLifetime.tab)).toISOString(), remember }
     await database.sessions.add(record)
     const session = await hydrate(record)
-    if (!session) throw new DataError('forbidden', 'Only active demo accounts can sign in.')
+    if (!session) throw new DataError('forbidden', 'Only active accounts can sign in.')
     await writeAudit(database, user, transactionId, 'users', user, user, action, 'DEMO ONLY: public demonstration credentials; not production authentication.')
     // Web Storage contains only a session reference. A failed IDB commit leaves an
     // invalid reference, which restore rejects; no default identity is substituted.
@@ -64,10 +64,10 @@ export function createAuthService(database: MockDatabase, stores: SessionStores,
       return commitMutation(database, async (transactionId) => {
         const login = request.login.toLowerCase()
         const user = await database.entity('users').where('municipalityId').equals(request.municipalityId).filter((row) => row.email.toLowerCase() === login || row.username.toLowerCase() === login).first()
-        if (!user) throw new DataError('invalid_credentials', 'No demo account exists for this login and municipality.')
-        if (request.password !== DEMO_PASSWORD) throw new DataError('invalid_credentials', 'Invalid demo credentials. Use the displayed public demo password.')
+        if (!user) throw new DataError('invalid_credentials', 'Invalid username, password, or municipality.')
+        if (request.password !== DEMO_PASSWORD) throw new DataError('invalid_credentials', 'Invalid username, password, or municipality.')
         if (user.status === 'pending') throw new DataError('account_pending', 'Your account request is Pending. A municipal Administrator must approve it before sign-in.')
-        if (user.status !== 'active') throw new DataError('account_disabled', 'This demo account is disabled or its request was rejected. Ask your demo Administrator.')
+        if (user.status !== 'active') throw new DataError('account_disabled', 'This account is disabled or its request was rejected. Contact your municipal Administrator.')
         return issue(user, request.remember, transactionId, references.read(), 'demo_login')
       })
     }),

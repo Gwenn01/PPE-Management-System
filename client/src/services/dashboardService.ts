@@ -60,7 +60,7 @@ export function createDashboardService(storage: MockDatabase = database) {
       let metrics: DashboardMetric[] = []
       let records: DashboardRecord[] = []
       let recordsTitle = 'Recent records'
-      let description = 'Current municipal demo records. Totals are calculated from browser storage.'
+      let description = 'Current municipal records. Totals are calculated from records stored in this browser.'
 
       switch (role) {
         case 'administrator': {
@@ -209,7 +209,7 @@ export function createDashboardService(storage: MockDatabase = database) {
           metrics.push(count('treasury', 'External Treasury pending', own.filter(r => r.budgetProcessing?.status === 'treasury_pending').length, 'Demo confirmation evidence required'))
           metrics.push(count('completed', 'Completed document processing', own.filter(r => r.budgetProcessing?.status === 'completed').length, 'Accounting acknowledged receipt; no disbursement'))
           records = own.map((row) => record(row.id, projects.find((project) => project.id === row.projectId)?.name ?? 'Project document', row.budgetProcessing?.voucher ? `Voucher ${row.budgetProcessing.voucher.reference}` : row.receivedAt ? `Received ${row.receivedAt}` : 'Not marked received', row.budgetProcessing?.status ?? row.workflowStatus, row.updatedAt, '/dashboard/budget'))
-          description = 'Engineering-to-Budget document queues, vouchers and external Treasury simulations. No real fund transfers or disbursements.'
+          description = 'Engineering-to-Budget document queues, vouchers and external Treasury confirmations. No action transfers funds or records a financial disbursement.'
           break
         }
       }
