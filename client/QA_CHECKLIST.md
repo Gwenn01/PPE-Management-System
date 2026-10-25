@@ -1,5 +1,16 @@
 # Phase 17 UI and interactive acceptance checklist
 
+## Enterprise UI refinement — 2026-10-25
+
+The existing uncommitted Phase 18 redesign was retained and extended with coordinated landing/authentication screens, a navy navigation shell, updated shared typography/cards/fields/table spacing, permission-filtered module search, public mobile navigation, and table filter reset/count feedback.
+
+- Existing service and domain suite: **143 passed, 14 suites, zero failures**. Includes all eight role navigation allowlists and scoped authentication.
+- Final `npm run build` (including TypeScript) and `npm run lint`: **passed**. The build still reports large-chunk and mixed static/dynamic database-import warnings. `git diff --check` passed.
+- No service/domain/seed, dependency manifest or lockfile changes are part of this refinement.
+- Browser verification: **not executed**. Browser setup returned `No browser is available`; discovery returned `[]`. Automated results do not establish rendered layout, interaction, focus order or contrast.
+- Manual additions: Ctrl/Cmd+K and the topbar search button; role-scoped results; search with no matches; clear search; keyboard link selection; Escape and focus restoration; no search opening over another dialog/mobile drawer; table clear filters and result counts; mobile public menu; sign-in and registration at 320px and 200% zoom; password visibility and validation states.
+- Repeat the existing viewport/role/workflow matrix below, including desktop layouts, form errors and report downloads.
+
 Status: Automated checks passed; interactive browser acceptance is NOT EXECUTED. The connected browser runtime reported no available browser (`[]`). This checklist remains a manual acceptance gate, not automated E2E evidence.
 
 Use fictional data and a separate browser profile/origin. Run `npm run dev`, then repeat production-sensitive checks with `npm run build` and `npm run preview`. Test both municipalities and all eight accounts listed in README. Record browser/version, viewport, actual result, screenshot/error and date for each check.
@@ -26,3 +37,34 @@ Use fictional data and a separate browser profile/origin. Run `npm run dev`, the
 | Runtime | Observe browser console/network through every flow; no uncaught exceptions, broken imports/assets, accidental business HTTP calls or duplicate submissions; verify production account switcher unavailable |
 
 Service integration tests already exercise domain transitions, authorization, import/reset, source calculations and IndexedDB reopen behavior under fake-indexeddb. They do not establish that browser forms, downloads or accessibility work end to end. A repeatable browser E2E suite and assistive-technology audit remain outstanding.
+
+# Phase 18 SaaS redesign acceptance
+
+Reference images were inspected. All eight roles use the revised shared shell and dashboard composition. Feature headers, controls, operational tabs and panels now use named design classes; outer width caps were removed in source. Coverage and conventions are documented in `DESIGN_SYSTEM.md`.
+
+Browser status: NOT EXECUTED. The Browser runtime returned `No browser is available` and browser discovery returned `[]`. No before/after application screenshots, visual comparison, browser zoom checks or interactive viewport results are claimed.
+
+Automated verification completed: `npm run typecheck` PASS; `npm run lint` PASS; `npm test` PASS (143 tests, 14 suites, zero failures); `npm run build` PASS. The build retains its existing large-chunk and mixed static/dynamic database-import warnings. Tests cover services, roles, municipality access, workflow transitions and persistence through fake-indexeddb, not browser interactions. No existing tests were removed or weakened.
+
+The remaining browser acceptance matrix is 320, 360, 390, 430, 768, 1024, 1280, 1366, 1440 and 1920px. For every role, inspect Dashboard Home and every permitted route. Confirm full page width, readable KPIs, full-width records, independent sidebar/main scrolling, active navigation, and mobile drawer focus/scroll restoration. Exercise search, filters, sorting, pagination, record details, the Auditor category selector, CRUD confirmations, upload/preview, export, and refresh persistence using a separate test profile. Mobile record lists should display cards without horizontal table scrolling. Desktop wide tables may scroll inside their own containers.
+
+Also inspect long names/currencies/statuses, short viewport heights, long modal content, empty/error/loading states, 200% zoom and reduced motion. Services, seeds, permissions and schema must remain unchanged by presentation work.
+
+## Phase 18 refinement verification — 2026-10-25
+
+- PASS: `npm run typecheck` (also executed as part of the production build).
+- PASS: `npm run lint`.
+- PASS: `npm test` — 143 tests across 14 suites, zero failures.
+- PASS: `npm run build` — TypeScript and Vite production build completed. Existing large-chunk and mixed static/dynamic import advisories remain.
+- PASS: source audit verified the role-specific primary dashboard links resolve only to routes granted to each role; the Budget dashboard presents four processing KPIs and two supporting counts separately.
+- PASS: route-level coverage and verification boundaries are recorded in `DESIGN_SYSTEM.md`.
+- NOT EXECUTED: browser visual, keyboard, viewport, and click acceptance. Browser discovery returned no connected browsers (`[]`); no rendered result is claimed.
+
+## Targeted recovery and dashboard correction — 2026-10-25
+
+- Restored `LandingPage`, the changed hero/navbar/get-started components, `AuthLayout`, `TextField`, `SelectField`, `LoginPage`, and `RegisterPage` from the recoverable pre-redesign `HEAD`. Their diffs were presentation-only; the restored auth files retain the committed current validation, session, persistence and registration behavior.
+- Restored the original palette values (`#8B8B8B` gray and `#F2F3F4` mist). Dashboard control/layout rules are scoped to `.dashboard-shell` and `.dashboard-dialog`.
+- Replaced the generic role status breakdown with a 12-column role-specific Bento composition. Administrator sees the full pending registration queue, current audit timeline, account status totals, active department/user counts and a searchable recent administrative records table. Other roles receive scoped asset-category, posted account, inspection progress, approval, audit, construction or Budget routing panels.
+- The desktop frame uses a full-height `#1F305E` sidebar, rounded connected white workspace, integrated 64px topbar, compact KPIs and independently scrolling content.
+- PASS: `npm run typecheck`, `npm run lint`, `npm test` (143 tests, 14 suites, zero failures), `npm run build`, `git diff --check`.
+- NOT EXECUTED: Browser screenshot and click/keyboard/viewport checks. The available browser runtime has no connected browser; source and build checks are not visual verification.

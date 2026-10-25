@@ -5,10 +5,11 @@ import type { AccountingOverview } from '../../services/accountingService'
 import type { RecognitionDetails } from '../../domain/models'
 import { depreciationSchedule, residualFromPercent } from '../../domain/accounting'
 import DataTable from '../../components/ui/DataTable'
+import PageHeader from '../../components/ui/PageHeader'
 import type { TableColumn } from '../../components/ui/DataTable'
 
 const money = (n: number) => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(n / 100)
-const control = 'rounded-lg border border-line p-2'
+const control = 'ui-input'
 export default function AccountingModule({ module }: { module: string }) {
   const { session } = useAuthenticatedUser()
   const ctx = useMemo(() => ({ actor: session.user, sessionId: session.sessionId, municipalityId: session.user.municipalityId }), [session])
@@ -32,9 +33,9 @@ export default function AccountingModule({ module }: { module: string }) {
   try { if (record?.recognitionDetails) schedule = depreciationSchedule(record.recognitionDetails, asOf, asset?.disposedDate) } catch { /* Date input can be temporarily empty. */ }
   const scheduleColumns: TableColumn<NonNullable<typeof schedule>['rows'][number]>[] = [
     { id: 'date', label: 'Month end', sortValue: (row) => row.date, mobileRole: 'title', cell: (row) => row.date },
-    { id: 'depreciation', label: 'Depreciation', sortValue: (row) => row.depreciation, cell: (row) => money(row.depreciation) },
-    { id: 'accumulated', label: 'Accumulated', sortValue: (row) => row.accumulated, cell: (row) => money(row.accumulated) },
-    { id: 'netBookValue', label: 'Net book value', sortValue: (row) => row.netBookValue, cell: (row) => money(row.netBookValue) },
+    { id: 'depreciation', label: 'Depreciation', sortValue: (row) => row.depreciation, align: 'right', cell: (row) => money(row.depreciation) },
+    { id: 'accumulated', label: 'Accumulated', sortValue: (row) => row.accumulated, align: 'right', cell: (row) => money(row.accumulated) },
+    { id: 'netBookValue', label: 'Net book value', sortValue: (row) => row.netBookValue, align: 'right', cell: (row) => money(row.netBookValue) },
   ]
   async function save() {
     if (!asset || !policy) return
@@ -50,14 +51,14 @@ export default function AccountingModule({ module }: { module: string }) {
       if (refreshed.ok) setData(refreshed.data); else throw new Error(refreshed.error.message)
     } catch (e) { setError(e instanceof Error ? e.message : 'Save failed.') } finally { setBusy(false) }
   }
-  return <div className="space-y-5">
-    <h2 className="text-2xl font-bold text-navy">{module === 'depreciation' ? 'Depreciation Schedule' : 'Pending Asset Recognition'}</h2>
-    <p className="rounded-xl border border-line bg-white p-4">Unverified demonstration policies - LGU-reported references only. Straight-line; example salvage 5%; buildings/infrastructure 20 years, electrical systems/streetlights 10 years, selected office equipment 5 years. Review and configure policy settings with the Administrator. Monthly calculations use full months at month end, without daily proration.</p>
+  return <div className="workspace-page">
+    <PageHeader eyebrow="Accounting" title={module === 'depreciation' ? 'Depreciation schedule' : 'Recognition and cost'} description="Review asset classification, saved policies and accounting records." />
+    <p className="ui-panel p-4">Unverified demonstration policies - LGU-reported references only. Straight-line; example salvage 5%; buildings/infrastructure 20 years, electrical systems/streetlights 10 years, selected office equipment 5 years. Review and configure policy settings with the Administrator. Monthly calculations use full months at month end, without daily proration.</p>
     {error && <p role="alert">{error}</p>}
     {!data ? <p role="status">Loading accounting data...</p> : <>
-      {module === 'recognition' && <section className="rounded-xl border border-line bg-white p-4"><h3 className="font-bold">Approved registrations awaiting accounting review</h3>{pending.length ? <ul>{pending.map(a => <li key={a.id}><button className="py-2 text-left text-navy underline" onClick={() => { setAssetId(a.id); setPolicyId(''); setReason('') }}>{a.propertyNumber} - {a.description} / {money(a.acquisitionCost)}</button></li>)}</ul> : <p>No approved registrations await recognition.</p>}</section>}
+      {module === 'recognition' && <section className="ui-panel p-4"><h3 className="font-bold">Approved registrations awaiting accounting review</h3>{pending.length ? <ul>{pending.map(a => <li key={a.id}><button className="py-2 text-left text-navy underline" onClick={() => { setAssetId(a.id); setPolicyId(''); setReason('') }}>{a.propertyNumber} - {a.description} / {money(a.acquisitionCost)}</button></li>)}</ul> : <p>No approved registrations await recognition.</p>}</section>}
       <label className="block">Asset Accounting Details <select className={control} value={assetId} onChange={e => { setAssetId(e.target.value); setPolicyId(''); setReason('') }}><option value="">Select asset ({pending.length} pending)</option>{data.assets.map(a => <option key={a.id} value={a.id}>{a.propertyNumber} - {a.description} ({a.recognitionStatus ?? 'legacy'})</option>)}</select></label>
-      {asset && <section className="space-y-4 rounded-xl border border-line bg-white p-5">
+      {asset && <section className="ui-panel space-y-4 p-5">
         <h3 className="font-bold">Accounting Classification</h3><p>Acquisition: {asset.acquisitionDate.slice(0, 10)} · Cost: {money(asset.acquisitionCost)} · Category: {asset.category}</p>
         {pending.some(a => a.id === asset.id) && <form className="grid gap-4 sm:grid-cols-2" onSubmit={e => { e.preventDefault(); void save() }}>
           <label>Reference policy <select required className={control} value={policyId} onChange={e => choosePolicy(e.target.value)}><option value="">Select policy</option>{data.policies.filter(p => p.active).map(p => <option key={p.id} value={p.id}>{p.name} v{p.version}</option>)}</select></label>

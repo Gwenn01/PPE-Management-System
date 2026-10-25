@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { useEffect, useRef } from 'react'
-import { Landmark, X } from 'lucide-react'
+import { Landmark, MapPin, X } from 'lucide-react'
 import { getNavGroups, hrefFor } from '../../config/navigation'
 import { roleLabels } from '../../config/roles'
 import { useAuthenticatedUser } from '../../hooks/useAuthenticatedUser'
@@ -45,35 +45,37 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
       <aside
         ref={sidebarRef}
         id="dashboard-sidebar"
+        role={open ? 'dialog' : undefined}
         aria-label="Main navigation"
         aria-modal={open ? true : undefined}
-        className={`fixed inset-y-0 left-0 z-50 flex h-dvh w-72 max-w-[85vw] flex-col border-r border-line bg-white transition-transform duration-200 lg:static lg:z-auto lg:h-dvh lg:w-64 lg:max-w-none lg:shrink-0 lg:translate-x-0 lg:transition-none ${
+        className={`fixed inset-y-0 left-0 z-50 flex h-dvh w-72 max-w-[85vw] flex-col border-r border-white/10 bg-sidebar text-white transition-transform duration-200 lg:static lg:z-auto lg:h-dvh lg:w-64 lg:max-w-none lg:shrink-0 lg:translate-x-0 lg:transition-none ${
           open ? 'visible translate-x-0' : 'invisible -translate-x-full lg:visible'
         }`}
       >
-        <div className="flex h-16 shrink-0 items-center justify-between border-b border-line px-5">
-          <div className="flex items-center gap-3 text-navy">
-            <Landmark className="h-7 w-7" strokeWidth={1.8} />
-            <span className="text-sm font-bold leading-tight">
+        <div className="flex h-[72px] shrink-0 items-center justify-between border-b border-white/10 px-5">
+          <div className="flex min-w-0 items-center gap-2.5 text-white">
+            <span className="rounded-xl border border-white/15 bg-white/10 p-2"><Landmark className="h-6 w-6" strokeWidth={1.8} /></span>
+            <span className="text-xs font-bold leading-tight">
               PPE Management
               <br />
-              System
+              <span className="text-[9px] font-medium uppercase tracking-[0.08em] text-white/60">Municipal workspace</span>
             </span>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close menu"
-            className="rounded p-1 text-gray hover:bg-mist hover:text-navy focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy lg:hidden"
+            className="rounded-lg p-2 text-white/70 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white lg:hidden"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <nav className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-3 py-4">
+        <div className="mx-4 mb-1 mt-5 flex shrink-0 items-center gap-2.5 rounded-lg border border-white/15 bg-white/5 px-3 py-3"><MapPin size={16} className="shrink-0 text-white/65" aria-hidden /><div className="min-w-0"><p className="text-[10px] font-medium uppercase tracking-widest text-white/60">Municipality</p><p className="truncate text-xs font-semibold">{session.municipality.name}</p></div></div>
+        <nav className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-3 py-5">
           {groups.map(({ group, items }) => (
             <div key={group} className="mb-5">
-              <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-gray">
+              <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/60">
                 {group}
               </p>
               <ul className="space-y-0.5">
@@ -84,15 +86,15 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
                       end={item.path === ''}
                       onClick={onClose}
                       className={({ isActive }) =>
-                        `flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy ${
+                        `flex min-h-10 items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${
                           isActive
-                            ? 'bg-navy font-semibold text-white'
-                            : 'text-charcoal hover:bg-mist hover:text-navy'
+                            ? 'bg-white/15 font-semibold text-white shadow-[inset_3px_0_0_#b9c9ee]'
+                            : 'text-white/80 hover:bg-white/10 hover:text-white'
                         }`
                       }
                     >
                       <item.icon className="h-[18px] w-[18px] shrink-0" />
-                      <span className="truncate">{item.label}</span>
+                      <span className="min-w-0 break-words leading-5">{item.label}</span>
                     </NavLink>
                   </li>
                 ))}
@@ -101,13 +103,11 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           ))}
         </nav>
 
-        <div className="shrink-0 border-t border-line px-5 py-4">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-gray">
-            Signed in as
-          </p>
-          <p className="mt-1 text-sm font-semibold text-navy">
-            {roleLabels[user.role]}
-          </p>
+        <div className="shrink-0 border-t border-white/10 px-5 py-4">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">Account</p>
+          <p className="mt-2 truncate text-sm font-semibold text-white">{user.name}</p>
+          <p className="mt-0.5 text-xs text-white/65">{roleLabels[user.role]}</p>
+          <p className="mt-0.5 truncate text-xs text-white/45">{session.municipality.name}</p>
         </div>
       </aside>
     </>

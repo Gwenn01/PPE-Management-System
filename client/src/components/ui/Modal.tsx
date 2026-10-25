@@ -26,9 +26,9 @@ export default function Modal({ open, title, onClose, children, footer }: { open
   }
   const onBackdrop = (event: MouseEvent<HTMLDivElement>) => { if (event.target === event.currentTarget) onClose() }
   return createPortal(<div onMouseDown={onBackdrop} className="fixed inset-0 z-[90] flex items-center justify-center overflow-y-auto overscroll-contain bg-charcoal/65 p-3 sm:p-6">
-    <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} onKeyDown={onKeyDown} className="my-auto max-h-[calc(100dvh-1.5rem)] w-full max-w-xl overflow-y-auto rounded-2xl border border-line bg-white p-4 shadow-2xl outline-none sm:max-h-[calc(100dvh-3rem)] sm:p-7">
-      <div className="flex items-start justify-between gap-4"><h2 id={titleId} className="text-xl font-extrabold text-navy">{title}</h2><button type="button" onClick={onClose} aria-label="Close dialog" className="rounded-lg p-2 text-gray hover:bg-mist hover:text-navy focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy"><X size={20} /></button></div>
-      <div className="mt-5 text-sm text-charcoal">{children}</div>{footer && <div className="mt-6 flex flex-wrap justify-end gap-2 border-t border-line pt-4">{footer}</div>}
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} onKeyDown={onKeyDown} className="dashboard-dialog ui-dialog my-auto flex max-h-[calc(100dvh-1.5rem)] w-full max-w-2xl flex-col overflow-hidden outline-none sm:max-h-[calc(100dvh-3rem)]">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-line px-4 py-3 sm:px-6"><h2 id={titleId} className="min-w-0 text-lg font-bold text-navy">{title}</h2><button type="button" onClick={onClose} aria-label="Close dialog" className="shrink-0 rounded-lg p-2.5 text-muted hover:bg-mist hover:text-navy focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy"><X size={20} /></button></div>
+      <div className="min-h-0 min-w-0 overflow-y-auto overscroll-contain break-words p-4 text-sm text-charcoal sm:p-6">{children}</div>{footer && <div className="flex shrink-0 flex-wrap justify-end gap-2 border-t border-line bg-mist/40 px-4 py-3 sm:px-6">{footer}</div>}
     </div>
   </div>, document.body)
 }

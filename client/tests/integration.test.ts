@@ -26,6 +26,29 @@ test('report preview/export parity, source totals, all roles, scope and reopen p
       const dashboard = ok(await createDashboardService(db).getSnapshot(ctx))
       assert.equal(dashboard.role, actor.role)
       assert.equal(dashboard.municipalityId, actor.municipalityId)
+      if (actor.role === 'administrator') {
+        assert.ok(dashboard.pendingApplicants)
+        assert.ok(dashboard.administrativeActivity)
+        assert.ok(dashboard.userStatuses)
+        assert.ok(dashboard.departmentSummary)
+        assert.equal(dashboard.metrics[1].label, 'Pending Account Registrations')
+        assert.ok(dashboard.pendingApplicants.every((applicant) => applicant.status === 'pending'))
+      } else {
+        const primaryTitles = {
+          property_officer: 'Asset Portfolio Distribution',
+          accounting_officer: 'Posted Accounting Overview',
+          inventory_personnel: 'Inventory Verification Progress',
+          approving_officer: 'Pending Approvals Queue',
+          auditor: 'Audit Activity Explorer',
+          engineering_office: 'Construction Project Monitoring',
+          budget_office: 'Received Documents Queue',
+        } as const
+        assert.equal(dashboard.panels?.primary.title, primaryTitles[actor.role])
+        assert.ok(!dashboard.pendingApplicants)
+        if (actor.role === 'inventory_personnel') {
+          assert.ok(dashboard.panels?.primary.items.every((item) => (item.value ?? 0) <= (item.total ?? 0)))
+        }
+      }
       const permitted = ['accounting_officer', 'approving_officer', 'auditor'].includes(actor.role)
       for (const type of reportTypes) {
         const filters = { type, start: '2000-01-01', end: '2099-12-31' }

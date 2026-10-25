@@ -25,7 +25,7 @@ function AuditTrailByRole() {
 /** Dispatch configured routes to their implemented modules. */
 export default function ModulePage({ item }: { item: NavItem }) {
   if (['transfers', 'maintenance', 'disposal', 'disposal-review'].includes(item.path)) return <Suspense fallback={<p role="status">Loading lifecycle management...</p>}><LifecycleModule key={item.path} module={item.path} /></Suspense>
-  if (item.path === 'physical-inventory' || item.path === 'asset-monitoring') return <Suspense fallback={<p role="status">Loading inventory...</p>}><InventoryModule /></Suspense>
+  if (item.path === 'physical-inventory' || item.path === 'asset-monitoring') return <Suspense fallback={<p role="status">Loading inventory...</p>}><InventoryModule module={item.path} /></Suspense>
   if (item.path === 'discrepancies') return <Suspense fallback={<p role="status">Loading investigations...</p>}><DiscrepancyModule /></Suspense>
   if (item.path === 'cip-costs') return <Suspense fallback={<p role="status">Loading CIP accounting...</p>}><CIPModule /></Suspense>
   if (item.path === 'reconciliation') return <Suspense fallback={<p role="status">Loading reconciliation...</p>}><ReconciliationModule /></Suspense>

@@ -1,6 +1,6 @@
 import { Children, isValidElement, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, X } from 'lucide-react'
 import SearchInput from './SearchInput'
 import FilterBar from './FilterBar'
 import type { FilterChoice } from './FilterBar'
@@ -16,6 +16,7 @@ export interface TableColumn<T> {
   cell: (row: T) => ReactNode
   sortValue?: (row: T) => string | number | null | undefined
   className?: string
+  align?: 'left' | 'right'
   mobileRole?: 'title' | 'subtitle' | 'status' | 'actions' | 'field'
 }
 
@@ -104,14 +105,15 @@ export default function DataTable<T>({ rows, columns, getRowId, getSearchText, f
   const titleIndex = Math.max(0, columns.findIndex((column) => column.mobileRole === 'title'))
   const subtitleIndex = columns.findIndex((column) => column.mobileRole === 'subtitle')
 
-  return <section className="overflow-hidden rounded-2xl border border-line bg-white">
+  return <section className="ui-panel">
     <div className="record-list-container">
-      <div className="flex flex-col gap-3 border-b border-line p-4 sm:flex-row">
+      <div className="flex flex-col flex-wrap gap-3 border-b border-line p-3 md:flex-row md:items-center sm:p-4">
         <SearchInput value={query} onChange={(value) => { setQuery(value); setPage(1) }} label={`Search ${caption}`} />
         {filterOptions && getFilterValue && <FilterBar label="Statuses" value={filter} options={filterOptions} onChange={(value) => { setFilter(value); setPage(1) }} />}
+        {(query || filter) && <button type="button" onClick={() => { setQuery(''); setFilter(''); setPage(1) }} className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-semibold text-navy hover:bg-mist"><X size={14} aria-hidden />Clear filters</button>}
         {sortableColumns.length > 0 && <label className="record-list-mobile-sort min-w-0 sm:min-w-36">
           <span className="sr-only">Sort {caption}</span>
-          <select aria-label={`Sort ${caption}`} value={sortKey ? `${sortKey}:${direction}` : ''} onChange={(event) => selectSort(event.target.value)} className="w-full rounded-xl border border-line bg-white px-3 py-2.5 text-sm text-charcoal outline-none focus-visible:border-navy focus-visible:ring-2 focus-visible:ring-navy/20">
+          <select aria-label={`Sort ${caption}`} value={sortKey ? `${sortKey}:${direction}` : ''} onChange={(event) => selectSort(event.target.value)} className="ui-input">
             <option value="">Default order</option>
             {sortableColumns.flatMap((column) => [
               <option key={`${column.id}:asc`} value={`${column.id}:asc`}>{column.label} (ascending)</option>,
@@ -121,19 +123,21 @@ export default function DataTable<T>({ rows, columns, getRowId, getSearchText, f
         </label>}
       </div>
 
+      {(query || filter) && <p role="status" className="border-b border-line bg-mist/40 px-4 py-2.5 text-xs text-muted">{result.total} of {rows.length} records match your filters</p>}
+
       <div ref={resultsRef} className="record-list-results scroll-mt-20">
       {result.total === 0 ? <div className="p-4"><EmptyState message={emptyMessage ?? 'Try another search or filter, or return after records are added.'} /></div> : <>
         <div className="record-list-table w-full overflow-x-auto">
-          <table className="w-full min-w-[600px] border-collapse text-left text-sm text-charcoal">
+          <table className="record-table">
             <caption className="sr-only">{caption}</caption>
-            <thead className="bg-mist text-xs uppercase tracking-wider text-navy"><tr>{columns.map((column) => <th scope="col" key={column.id} aria-sort={column.sortValue ? sortKey === column.id ? direction === 'asc' ? 'ascending' : 'descending' : 'none' : undefined} className={`px-4 py-3 font-semibold ${column.className ?? ''}`}>
-              {column.sortValue ? <button type="button" className="flex items-center gap-1.5 rounded text-left hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy" onClick={() => changeSort(column.id)}>{column.label}{sortKey === column.id ? direction === 'asc' ? <ArrowUp size={14} aria-hidden /> : <ArrowDown size={14} aria-hidden /> : <ArrowUpDown size={14} aria-hidden />}</button> : column.label}
+            <thead className="text-left"><tr>{columns.map((column) => <th scope="col" key={column.id} aria-sort={column.sortValue ? sortKey === column.id ? direction === 'asc' ? 'ascending' : 'descending' : 'none' : undefined} className={`font-semibold ${column.align === 'right' ? 'text-right' : ''} ${column.className ?? ''}`}>
+              {column.sortValue ? <button type="button" className={`flex w-full items-center gap-1.5 rounded hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy ${column.align === 'right' ? 'justify-end text-right' : 'text-left'}`} onClick={() => changeSort(column.id)}>{column.label}{sortKey === column.id ? direction === 'asc' ? <ArrowUp size={14} aria-hidden /> : <ArrowDown size={14} aria-hidden /> : <ArrowUpDown size={14} aria-hidden />}</button> : column.label}
             </th>)}</tr></thead>
-            <tbody>{visibleRows.map(({ id, cells }) => <tr key={id} className="border-t border-line align-top hover:bg-mist/60">{columns.map((column, index) => <td key={column.id} className={`px-4 py-3 ${column.className ?? ''}`}>{cells[index]}</td>)}</tr>)}</tbody>
+            <tbody>{visibleRows.map(({ id, cells }) => <tr key={id} className="border-t border-line align-top hover:bg-mist/60">{columns.map((column, index) => <td key={column.id} className={`${column.align === 'right' ? 'text-right tabular-nums' : ''} ${column.className ?? ''}`}>{cells[index]}</td>)}</tr>)}</tbody>
           </table>
         </div>
 
-        <div className="record-list-cards space-y-3 p-3" role="list" aria-label={`${caption} cards`}>
+        <div className="record-list-cards space-y-3 bg-mist/40 p-3" role="list" aria-label={`${caption} cards`}>
           {visibleRows.map(({ id, cells }) => {
             const actionIndices = columns.map((column, index) => isActionColumn(column, cells[index]) ? index : -1).filter((index) => index >= 0 && index !== titleIndex)
             const statusColumnIndex = statusIndex >= 0 && statusIndex !== titleIndex && !actionIndices.includes(statusIndex) ? statusIndex : -1
@@ -149,7 +153,7 @@ export default function DataTable<T>({ rows, columns, getRowId, getSearchText, f
               status={statusColumnIndex >= 0 ? <><span className="sr-only">{columns[statusColumnIndex].label}: </span>{cells[statusColumnIndex]}</> : undefined}
               fields={shownIndices.map((index) => ({ label: columns[index].label, value: cells[index] }))}
               moreFields={extraIndices.map((index) => ({ label: columns[index].label, value: cells[index] }))}
-              actions={actionIndices.length ? actionIndices.map((index) => <div className="flex flex-wrap gap-2" key={columns[index].id}>{cells[index]}</div>) : undefined}
+              actions={actionIndices.length ? actionIndices.map((index) => <div className="min-w-0 max-w-full" key={columns[index].id}>{cells[index]}</div>) : undefined}
             />
           })}
         </div>

@@ -38,14 +38,14 @@ export default function DemoDataTools() {
       setError(reason instanceof Error ? reason.message : 'The data operation failed.')
     } finally { setBusy(false) }
   }
-  const button = 'rounded-lg bg-navy px-4 py-2 text-sm font-semibold text-white hover:bg-navy-dark disabled:cursor-not-allowed disabled:opacity-50'
+  const button = 'ui-button'
 
   return (
     <section className="mt-8 space-y-6 rounded-xl border border-line bg-mist p-5 sm:p-6" aria-labelledby="demo-data-heading" aria-busy={busy}>
       <div>
         <h3 id="demo-data-heading" className="text-lg font-bold text-navy">Data management · {municipality}</h3>
         <p className="mt-2 text-sm leading-6 text-charcoal">Manage records stored in this browser for {municipality}. Configured accounting settings are reference values and should be reviewed against applicable policy.</p>
-        <p className="mt-2 text-xs leading-5 text-gray">JSON exports contain records and document metadata. Uploaded files are stored separately in IndexedDB and are not included in the export.</p>
+        <p className="mt-2 text-xs leading-5 text-muted">JSON exports contain records and document metadata. Uploaded files are stored separately in IndexedDB and are not included in the export.</p>
       </div>
       <fieldset disabled={busy} className="space-y-5">
         <div>
