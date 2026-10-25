@@ -6,18 +6,19 @@ type AuthLayoutProps = {
   heading: string
   blurb: string
   children: ReactNode
+  contentClassName?: string
 }
 
 export default function AuthLayout({
   heading,
   blurb,
   children,
+  contentClassName = '',
 }: AuthLayoutProps) {
   return (
-    <main className="flex min-h-svh items-center justify-center bg-mist p-3 sm:p-6">
-      <div className="grid w-full max-w-[1100px] overflow-hidden rounded-3xl bg-white shadow-[0_24px_60px_-24px_rgba(31,48,94,0.35)] lg:min-h-[700px] lg:grid-cols-[1fr_1.1fr]">
+    <main className="auth-screen min-h-dvh w-full bg-white md:grid md:min-h-dvh md:grid-cols-[0.72fr_1.28fr] lg:h-dvh lg:min-h-0 lg:grid-cols-[0.9fr_1.1fr] lg:grid-rows-[minmax(0,1fr)]">
         {/* Left: image panel */}
-        <aside className="relative flex min-h-[260px] flex-col justify-between overflow-hidden bg-navy p-6 text-white sm:p-8 lg:rounded-tr-[96px] lg:p-10">
+        <aside className="auth-visual-panel relative flex min-h-[230px] flex-col justify-between overflow-hidden bg-navy p-6 text-white sm:p-8 md:min-h-0 lg:rounded-tr-[96px] lg:p-10">
           <img
             src="/iamges/auth/auth.jpg"
             alt=""
@@ -34,7 +35,7 @@ export default function AuthLayout({
             Back to home
           </Link>
 
-          <div className="relative z-10 my-8 max-w-sm lg:my-0">
+          <div className="relative z-10 my-8 max-w-sm md:my-4 lg:my-0">
             <h2 className="text-3xl font-extrabold leading-tight sm:text-4xl">
               {heading}
             </h2>
@@ -50,10 +51,8 @@ export default function AuthLayout({
         </aside>
 
         {/* Right: form panel */}
-        <div className="relative">
-          {/* navy fill that shows through the rounded bottom-left corner */}
-          <div className="absolute bottom-0 left-0 hidden h-24 w-24 bg-navy lg:block" />
-          <div className="relative flex h-full flex-col justify-center bg-white px-6 py-10 sm:px-12 lg:rounded-bl-[96px] lg:px-14 lg:py-12">
+        <section className="auth-form-shell min-h-0 bg-navy lg:overflow-hidden">
+          <div className="auth-form-panel flex min-h-0 flex-col bg-white px-6 py-8 sm:px-10 md:px-8 lg:h-full lg:overflow-y-auto lg:rounded-bl-[96px] lg:px-12 lg:py-6">
             <Link
               to="/"
               className="mx-auto flex items-center gap-3 text-navy"
@@ -63,10 +62,9 @@ export default function AuthLayout({
               <span className="text-lg font-bold">PPE Management System</span>
             </Link>
 
-            <div className="mx-auto mt-10 w-full max-w-md">{children}</div>
+            <div className={`auth-form-content mx-auto mt-6 w-full max-w-md ${contentClassName}`}>{children}</div>
           </div>
-        </div>
-      </div>
+        </section>
     </main>
   )
 }

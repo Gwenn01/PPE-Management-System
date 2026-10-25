@@ -25,7 +25,7 @@ export default function SelectField({
     <div className={wrapperClassName}>
       <label
         htmlFor={id}
-        className="block text-[11px] font-semibold uppercase tracking-wider text-gray"
+        className="auth-field-label block text-[11px] font-semibold uppercase tracking-wider text-gray"
       >
         {label}
       </label>
@@ -35,7 +35,7 @@ export default function SelectField({
           value={value}
           aria-invalid={Boolean(error)}
           aria-describedby={error ? `${id}-error` : undefined}
-          className={`w-full appearance-none border-b bg-transparent py-2 pr-8 text-[15px] outline-none transition-colors focus:border-navy ${
+          className={`auth-field-control w-full appearance-none border-b bg-transparent py-2 pr-8 text-[15px] outline-none transition-colors focus:border-navy ${
             value ? 'text-charcoal' : 'text-gray/70'
           } ${error ? 'border-red-600' : 'border-line'}`}
           {...rest}

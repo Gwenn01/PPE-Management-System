@@ -78,22 +78,22 @@ export default function RegisterPage() {
     <AuthLayout
       heading="Request your account."
       blurb="Register to start recording, approving, and reporting on local government assets. Your role and access are confirmed by an administrator."
+      contentClassName="auth-registration-content max-w-xl"
     >
-      <h1 className="text-2xl font-bold text-charcoal">Sign up</h1>
-      <p className="mt-4 rounded-lg border border-line bg-mist p-3 text-xs leading-5 text-charcoal"><strong className="text-navy">Account request.</strong> Use non-personal details. Accounts use the shared password <code className="font-semibold">{DEMO_PASSWORD}</code>. No personal passwords are stored. Do not use personal credentials. Requests are stored in this browser.</p>
+      <h1 className="text-2xl font-bold text-charcoal">Create an Account</h1>
+      <p className="mt-1 text-sm text-gray">Submit your details for review by your municipal Administrator.</p>
       {!options && !loadError && <p className="mt-4 text-sm text-gray" role="status">Loading municipalities and departments…</p>}
       {loadError && <p className="mt-4 text-sm text-red-700" role="alert">{loadError} <button type="button" className="font-semibold text-navy underline" onClick={() => { setLoadError(''); setAttempt((value) => value + 1) }}>Retry</button></p>}
 
-      {registered ? <section className="mt-8 rounded-xl border border-line bg-mist p-5" role="status">
+      {registered ? <section className="mt-5 rounded-xl border border-line bg-mist p-5" role="status">
         <h2 className="font-bold text-navy">Account request saved — Pending</h2>
         <p className="mt-3 text-sm leading-6 text-charcoal">Your request for <strong>{registered.username}</strong> is stored in this browser. A {registered.municipalityId === 'botolan' ? 'Botolan' : 'San Antonio'} Administrator must approve it in Users before you can sign in. No session was created.</p>
         <Link to="/login" className="mt-4 inline-block rounded-full bg-navy px-6 py-2 text-sm font-semibold text-white">Return to sign in</Link>
         <button type="button" className="mt-3 block text-sm font-semibold text-navy underline" onClick={() => setRegistered(null)}>Submit another request</button>
-      </section> : <form onSubmit={(event) => { void handleSubmit(event) }} noValidate className="mt-8" aria-busy={busy}>
+      </section> : <form onSubmit={(event) => { void handleSubmit(event) }} noValidate className="auth-registration-form mt-4" aria-busy={busy}>
         <fieldset disabled={busy || !options}>
-        <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2">
+        <div className="grid gap-x-5 gap-y-3 md:grid-cols-2">
           <TextField
-            wrapperClassName="sm:col-span-2"
             label="Full name"
             name="fullName"
             autoComplete="name"
@@ -102,9 +102,8 @@ export default function RegisterPage() {
             onChange={update('fullName')}
             error={errors.fullName}
           />
-          <TextField wrapperClassName="sm:col-span-2" label="Username" name="username" autoComplete="username" placeholder="municipal.officer" value={form.username} onChange={update('username')} error={errors.username} />
+          <TextField label="Username" name="username" autoComplete="username" placeholder="municipal.officer" value={form.username} onChange={update('username')} error={errors.username} />
           <TextField
-            wrapperClassName="sm:col-span-2"
             label="Email"
             name="email"
             type="email"
@@ -154,12 +153,12 @@ export default function RegisterPage() {
             error={errors.confirmDemoPassword}
           />
         </div>
-        <label className="mt-6 flex items-start gap-2 text-xs leading-5 text-charcoal"><input type="checkbox" checked={form.demoAcknowledged} onChange={(event) => setForm((previous) => ({ ...previous, demoAcknowledged: event.target.checked }))} className="mt-1 accent-navy" aria-describedby={errors.demoAcknowledged ? 'demo-ack-error' : undefined} aria-invalid={!!errors.demoAcknowledged} />I am using non-personal details and understand account requests are stored in this browser.</label>
+        <label className="mt-4 flex items-start gap-2 text-xs leading-5 text-charcoal"><input type="checkbox" checked={form.demoAcknowledged} onChange={(event) => setForm((previous) => ({ ...previous, demoAcknowledged: event.target.checked }))} className="mt-1 accent-navy" aria-describedby={errors.demoAcknowledged ? 'demo-ack-error' : undefined} aria-invalid={!!errors.demoAcknowledged} />I am using non-personal details and understand account requests are stored in this browser.</label>
         {errors.demoAcknowledged && <p id="demo-ack-error" className="mt-1 text-xs text-red-700">{errors.demoAcknowledged}</p>}
         {message && <p className="mt-4 text-sm text-red-700" role="alert">{message}</p>}
         {!message && Object.keys(errors).length > 0 && <p className="mt-4 text-sm text-red-700" role="alert">Review the highlighted fields before submitting.</p>}
 
-        <div className="mt-8 flex items-center justify-between gap-4">
+        <div className="mt-4 flex items-center justify-between gap-4">
           <p className="text-sm text-charcoal">
             Have an account?{' '}
             <Link
@@ -180,7 +179,7 @@ export default function RegisterPage() {
         </fieldset>
       </form>}
 
-      <p className="mt-10 border-t border-line pt-5 text-center text-xs leading-5 text-gray">
+      <p className="mt-5 border-t border-line pt-3 text-center text-xs leading-5 text-gray">
         Authorized municipal personnel only. Access to records depends on your
         assigned role and municipality.
       </p>

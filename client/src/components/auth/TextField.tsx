@@ -23,7 +23,7 @@ export default function TextField({
     <div className={wrapperClassName}>
       <label
         htmlFor={id}
-        className="block text-[11px] font-semibold uppercase tracking-wider text-gray"
+        className="auth-field-label block text-[11px] font-semibold uppercase tracking-wider text-gray"
       >
         {label}
       </label>
@@ -33,7 +33,7 @@ export default function TextField({
           type={isPassword && visible ? 'text' : type}
           aria-invalid={Boolean(error)}
           aria-describedby={error ? `${id}-error` : undefined}
-          className={`w-full border-b bg-transparent py-2 pr-8 text-[15px] text-charcoal outline-none transition-colors placeholder:text-gray/60 focus:border-navy ${
+          className={`auth-field-control w-full border-b bg-transparent py-2 pr-8 text-[15px] text-charcoal outline-none transition-colors placeholder:text-gray/60 focus:border-navy ${
             error ? 'border-red-600' : 'border-line'
           }`}
           {...rest}
