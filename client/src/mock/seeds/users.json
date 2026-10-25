@@ -191,7 +191,7 @@
     "email": "auditor@example.com",
     "role": "auditor",
     "departmentId": "san_antonio-dept-general",
-    "status": "active",
+    "status": "active", 
     "isDemo": true,
     "username": "auditor"
   },

@@ -4,6 +4,8 @@ import { mockDataServices } from '../../services/mockDataService'
 import type { AccountingOverview } from '../../services/accountingService'
 import type { RecognitionDetails } from '../../domain/models'
 import { depreciationSchedule, residualFromPercent } from '../../domain/accounting'
+import DataTable from '../../components/ui/DataTable'
+import type { TableColumn } from '../../components/ui/DataTable'
 
 const money = (n: number) => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(n / 100)
 const control = 'rounded-lg border border-line p-2'
@@ -28,6 +30,12 @@ export default function AccountingModule({ module }: { module: string }) {
   }
   let schedule: ReturnType<typeof depreciationSchedule> | null = null
   try { if (record?.recognitionDetails) schedule = depreciationSchedule(record.recognitionDetails, asOf, asset?.disposedDate) } catch { /* Date input can be temporarily empty. */ }
+  const scheduleColumns: TableColumn<NonNullable<typeof schedule>['rows'][number]>[] = [
+    { id: 'date', label: 'Month end', sortValue: (row) => row.date, mobileRole: 'title', cell: (row) => row.date },
+    { id: 'depreciation', label: 'Depreciation', sortValue: (row) => row.depreciation, cell: (row) => money(row.depreciation) },
+    { id: 'accumulated', label: 'Accumulated', sortValue: (row) => row.accumulated, cell: (row) => money(row.accumulated) },
+    { id: 'netBookValue', label: 'Net book value', sortValue: (row) => row.netBookValue, cell: (row) => money(row.netBookValue) },
+  ]
   async function save() {
     if (!asset || !policy) return
     setBusy(true); setError('')
@@ -61,7 +69,7 @@ export default function AccountingModule({ module }: { module: string }) {
           <button disabled={busy || !policy} className="rounded-lg bg-navy p-3 text-white">{busy ? 'Saving...' : 'Authorize and save accounting information'}</button>
         </form>}
         {record?.recognitionDetails && <><p>Saved treatment: {record.recognitionDetails.treatment} · {record.recognitionDetails.reason}</p><label>Historical calculation as of <input type="date" required className={control} value={asOf} onChange={e => setAsOf(e.target.value)} /></label>
-          {asset.disposedDate && <p>Retired on {asset.disposedDate}. The calculated schedule stops at disposal; authorized postings remain in Accounting History.</p>}{schedule && <><p>Cost {money(schedule.cost)} · Depreciable amount {money(schedule.depreciableAmount)} · Calculated accumulated depreciation {money(schedule.accumulatedDepreciation)} · Net book value {money(schedule.netBookValue)}</p><p>Semi-expendable net book value is a demonstration tracking value; expensed items have zero capitalized net book value.</p><p>Calculated preview only. No depreciation postings are authorized by viewing this schedule.</p><div className="max-h-96 overflow-auto"><table className="w-full text-left text-sm"><thead><tr>{['Month end','Depreciation','Accumulated','Net book value'].map(h => <th key={h}>{h}</th>)}</tr></thead><tbody>{schedule.rows.map(r => <tr key={r.date}><td>{r.date}</td><td>{money(r.depreciation)}</td><td>{money(r.accumulated)}</td><td>{money(r.netBookValue)}</td></tr>)}</tbody></table>{!schedule.rows.length && <p>No depreciation applies to this treatment.</p>}</div></>}
+          {asset.disposedDate && <p>Retired on {asset.disposedDate}. The calculated schedule stops at disposal; authorized postings remain in Accounting History.</p>}{schedule && <><p>Cost {money(schedule.cost)} · Depreciable amount {money(schedule.depreciableAmount)} · Calculated accumulated depreciation {money(schedule.accumulatedDepreciation)} · Net book value {money(schedule.netBookValue)}</p><p>Semi-expendable net book value is a demonstration tracking value; expensed items have zero capitalized net book value.</p><p>Calculated preview only. No depreciation postings are authorized by viewing this schedule.</p>{schedule.rows.length ? <DataTable rows={schedule.rows} columns={scheduleColumns} caption="Monthly depreciation schedule" pageSize={10} getRowId={(row) => row.date} getSearchText={(row) => `${row.date} ${row.depreciation} ${row.accumulated} ${row.netBookValue}`} /> : <p>No depreciation applies to this treatment.</p>}</>}
         </>}
         {!record && !pending.some(a => a.id === asset.id) && <p>No Phase 08 recognition snapshot exists. Legacy postings remain available in history; no assumptions are fabricated.</p>}
         <h3 className="font-bold">Accounting History</h3>{data.records.filter(r => r.assetId === asset.id).map(r => <article key={r.id} className="border-t border-line py-3"><p>{r.postingDate.slice(0, 10)} · {r.kind} · {r.accountCode} · Debit {money(r.debit)} · Credit {money(r.credit)} · Actor {r.postedById} · Policy v{r.policyVersion}</p>{r.recognitionDetails && <details><summary>Immutable decision and policy snapshot</summary><pre className="overflow-auto text-xs">{JSON.stringify(r.recognitionDetails, null, 2)}</pre></details>}</article>)}

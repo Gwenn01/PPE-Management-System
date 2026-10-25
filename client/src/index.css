@@ -35,6 +35,48 @@ section[id] {
   scroll-margin-top: 4rem;
 }
 
+.record-list-container {
+  container: record-list / inline-size;
+}
+
+.record-list-cards,
+.record-list-mobile-sort {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .record-list-table {
+    display: none;
+  }
+
+  .record-list-cards,
+  .record-list-mobile-sort {
+    display: block;
+  }
+}
+
+@container record-list (max-width: 44rem) {
+  .record-list-table {
+    display: none;
+  }
+
+  .record-list-cards,
+  .record-list-mobile-sort {
+    display: block;
+  }
+}
+
+@media (min-width: 1024px) {
+  .record-list-table {
+    display: block !important;
+  }
+
+  .record-list-cards,
+  .record-list-mobile-sort {
+    display: none !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
